@@ -24,7 +24,7 @@ select option{background:var(--surface2);}
 .mono{font-family:'JetBrains Mono',monospace;}
 /* Nav */
 .bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav);background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom,0px);}
-.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;color:var(--muted);font-size:9px;font-family:'Inter',sans-serif;padding:4px 0;}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;justifyContent:'center';gap:2px;border:none;background:none;color:var(--muted);font-size:9px;font-family:'Inter',sans-serif;padding:4px 0;}
 .ni.on{color:var(--accent);}
 .ni .ic{font-size:20px;line-height:1;}
 /* Layout */
@@ -45,6 +45,7 @@ select option{background:var(--surface2);}
 <body>
 <div id="app"></div>
 
+<!-- Moteur de l'application -->
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
@@ -126,7 +127,7 @@ function App(){
   const [aiIn,setAiIn]   = useState('');
   const [aiLoad,setAiLoad] = useState(false);
   const [addFood,setAddFood] = useState(false);
-  const [nf,setNf']       = useState({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});
+  const [nf,setNf]       = useState({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});
   const [rtab,setRtab]   = useState('list');
   const [nr,setNr]       = useState({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});
   const [addSess,setAddSess] = useState(false);
@@ -139,7 +140,7 @@ function App(){
     setCf(localGet('foods'));
     setRecs(localGet('recipes'));
     setSess(localGet('sessions'));
-    setNas('ok'); // Indicateur mode local activé
+    setNas('ok');
     flash('✓ Mode Local Activé');
   },[]);
 
@@ -552,7 +553,7 @@ function App(){
             <div style={{maxWidth:'82%',padding:'8px 11px',borderRadius:10,fontSize:12,lineHeight:1.6,background:m.role==='user'?'var(--si)':'var(--surface)',color:m.role==='user'?'var(--blue)':'var(--text)',border:'1px solid '+(m.role==='user'?'var(--sb)':'var(--border)')}}>{m.content}</div>
           </div>
         ))}
-        {aiLoad&&<div style={{display:'flex環境'}}><div style={{padding:'7px 12px',borderRadius:10,...card,fontSize:12,color:'var(--muted)'}}>Coach réfléchit…</div></div>}
+        {aiLoad&&<div style={{display:'flex'}}><div style={{padding:'7px 12px',borderRadius:10,...card,fontSize:12,color:'var(--muted)'}}>Coach réfléchit…</div></div>}
       </div>
       <div style={{display:'flex',gap:7,paddingTop:6}}>
         <input value={aiIn} onChange={e=>setAiIn(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&sendAI()} placeholder="Pose ta question…" style={{flex:1,padding:'9px 12px',fontSize:12,borderRadius:8}}/>
