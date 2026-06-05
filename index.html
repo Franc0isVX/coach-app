@@ -239,7 +239,8 @@ function App(){
   const [nr,setNr]     = useState({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});
   const [addSess,setAS] = useState(false);
   const [editSess,setES] = useState(null);
-  const [ns,setNs]     = useState({date:'',title:'',type:'Cardio',duree:60,statut:'À faire',calories:0});
+  const emptyTab = ()=>({cols:['S1','S2','S3'],rows:[{ex:'',vals:['','','']}]});
+  const [ns,setNs]     = useState({date:'',title:'',type:'Cardio',duree:60,statut:'À faire',calories:0,tableau:emptyTab()});
   const chatRef        = useRef(null);
   const fileRef        = useRef(null);
   const aiInputRef     = useRef(null);
@@ -262,7 +263,7 @@ function App(){
   const gtgt = ds=>istr(ds)?TK:RK;
   const gm   = ds=>days[ds]?.meals||{matin:[],midi:[],collation:[],soir:[]};
   const gt   = ds=>totals(gm(ds),afw);
-  const gb   = ds=>days[ds]?.cal||0;
+  const gb   = ds=>sess[ds]?.calories||days[ds]?.cal||0;
 
   function saveDay(dd,ds){setDays(dd);localSet('days',dd);}
   function addRow(ds,mid){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].meals[mid]=[...(dd[ds].meals[mid]||[]),{food:'',qty:0}];saveDay(dd,ds);}
@@ -274,8 +275,20 @@ function App(){
   function saveRec(){if(!nr.name)return;const ings=nr.ings.filter(i=>i.food&&i.qty>0);if(!ings.length)return;const t=rTotals(ings);const r={...recs,[nr.name]:{portions:nr.portions,desc:nr.desc,ingredients:ings,totals:t}};setRecs(r);localSet('recipes',r);flash('✓ '+nr.name);setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});setRtab('list');}
   function delRec(n){const r={...recs};delete r[n];setRecs(r);localSet('recipes',r);}
   function saveSess(s){setSess(s);localSet('sessions',s);flash('✓ Séances');}
-  function saveNewSess(){if(!ns.title||!ns.date)return;saveSess({...sess,[ns.date]:{title:ns.title,type:ns.type,duree:+ns.duree,statut:ns.statut,source:'Manuel',calories:+ns.calories||0}});setNs({date:'',title:'',type:'Cardio',duree:60,statut:'À faire',calories:0});setAS(false);}
-  function updSess(ds){saveSess({...sess,[ds]:{...editSess}});setES(null);}
+  function saveNewSess(){
+    if(!ns.title||!ns.date)return;
+    const sd={title:ns.title,type:ns.type,duree:+ns.duree,statut:ns.statut,source:'Manuel',calories:+ns.calories||0};
+    if(ns.type==='Force')sd.tableau=ns.tableau;
+    saveSess({...sess,[ns.date]:sd});
+    if(+ns.calories>0)setCalB(ns.date,+ns.calories);
+    setNs({date:'',title:'',type:'Cardio',duree:60,statut:'À faire',calories:0,tableau:emptyTab()});
+    setAS(false);
+  }
+  function updSess(ds){
+    saveSess({...sess,[ds]:{...editSess}});
+    if(+editSess.calories>0)setCalB(ds,+editSess.calories);
+    setES(null);
+  }
   function delSess(ds){const s={...sess};delete s[ds];saveSess(s);}
 
   function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();flash('✓ Exporté');}
@@ -381,10 +394,17 @@ function App(){
         <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--surface2)',borderRadius:7,padding:'7px 10px'}}>
           <span style={{fontSize:16}}>🔥</span>
           <span style={{fontSize:12,color:'var(--muted)',flex:1}}>Calories brulees</span>
-          <input type="number" inputMode="decimal" min={0} step={10} value={days[sel]?.cal||''} placeholder="0"
-            onChange={e=>setCalB(sel,+e.target.value||0)}
+          <input type="number" inputMode="decimal" min={0} step={10}
+            value={sSes?(sSes.calories>0?sSes.calories:''):(days[sel]?.cal||'')}
+            placeholder="0"
+            onChange={e=>{
+              const v=+e.target.value||0;
+              setCalB(sel,v);
+              if(sSes){const s={...sess,[sel]:{...sSes,calories:v}};setSess(s);localSet('sessions',s);}
+            }}
             style={{width:90,padding:'5px 8px',textAlign:'center',...mono}}/>
           <span style={{fontSize:11,color:'var(--muted)',...mono}}>kcal</span>
+          {sSes&&<span style={{fontSize:9,color:'var(--blue)',...mono}}>⚡séance</span>}
         </div>
       </div>
 
@@ -431,6 +451,75 @@ function App(){
     </div>;
   }
 
+  function TableauEditor({tab, onTab}){
+    const si={fontSize:12,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)',borderRadius:4,outline:'none'};
+    return <div>
+      <div style={{overflowX:'auto',borderRadius:7,border:'1px solid var(--border)'}}>
+        <table style={{borderCollapse:'collapse',fontSize:12}}>
+          <thead>
+            <tr style={{background:'var(--surface2)'}}>
+              <th style={{padding:'6px 8px',textAlign:'left',borderBottom:'1px solid var(--border)',fontSize:10,color:'var(--muted)',fontWeight:600,minWidth:130,...mono}}>EXERCICE</th>
+              {tab.cols.map((col,ci)=>(
+                <th key={ci} style={{padding:'3px 4px',borderBottom:'1px solid var(--border)',minWidth:72}}>
+                  <div style={{display:'flex',alignItems:'center',gap:2,justifyContent:'center'}}>
+                    <input value={col} inputMode="text"
+                      onChange={e=>{const t=JSON.parse(JSON.stringify(tab));t.cols[ci]=e.target.value;onTab(t);}}
+                      style={{...si,width:46,padding:'3px 4px',textAlign:'center',fontSize:11,...mono}}/>
+                    {tab.cols.length>1&&<button onClick={()=>{const t=JSON.parse(JSON.stringify(tab));t.cols.splice(ci,1);t.rows=t.rows.map(r=>{const v=[...r.vals];v.splice(ci,1);return{...r,vals:v};});onTab(t);}} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:11,padding:'1px 2px',lineHeight:1}}>✕</button>}
+                  </div>
+                </th>
+              ))}
+              <th style={{padding:'3px 4px',borderBottom:'1px solid var(--border)',width:32}}>
+                <button onClick={()=>{const t=JSON.parse(JSON.stringify(tab));t.cols.push('S'+(t.cols.length+1));t.rows=t.rows.map(r=>({...r,vals:[...r.vals,'']}));onTab(t);}} style={{...btnG,padding:'2px 6px',fontSize:14,lineHeight:1}}>+</button>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {tab.rows.map((row,ri)=>(
+              <tr key={ri} style={{borderBottom:'1px solid var(--border)'}}>
+                <td style={{padding:'3px 4px'}}>
+                  <input value={row.ex} onChange={e=>{const t=JSON.parse(JSON.stringify(tab));t.rows[ri].ex=e.target.value;onTab(t);}} placeholder="Exercice" inputMode="text" style={{...si,width:120,padding:'4px 6px',fontSize:12}}/>
+                </td>
+                {row.vals.map((val,ci)=>(
+                  <td key={ci} style={{padding:'3px 4px'}}>
+                    <input value={val} onChange={e=>{const t=JSON.parse(JSON.stringify(tab));t.rows[ri].vals[ci]=e.target.value;onTab(t);}} placeholder="—" inputMode="text" style={{...si,width:66,padding:'4px 6px',textAlign:'center',fontSize:12,...mono}}/>
+                  </td>
+                ))}
+                <td style={{padding:'3px 4px'}}>
+                  <button onClick={()=>{const t=JSON.parse(JSON.stringify(tab));t.rows.splice(ri,1);if(t.rows.length===0)t.rows=[{ex:'',vals:new Array(t.cols.length).fill('')}];onTab(t);}} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:14,padding:'2px 4px'}}>🗑</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <button onClick={()=>{const t=JSON.parse(JSON.stringify(tab));t.rows.push({ex:'',vals:new Array(t.cols.length).fill('')});onTab(t);}} style={{width:'100%',padding:'5px',fontSize:11,border:'1px dashed var(--border)',borderRadius:6,background:'none',color:'var(--muted)',cursor:'pointer',marginTop:5}}>+ Exercice</button>
+    </div>;
+  }
+
+  function TableauView({tab}){
+    const rows=tab.rows.filter(r=>r.ex);
+    if(!rows.length)return null;
+    return <div style={{overflowX:'auto',marginTop:8,borderRadius:6,border:'1px solid var(--border)'}}>
+      <table style={{borderCollapse:'collapse',fontSize:11,width:'100%'}}>
+        <thead>
+          <tr style={{background:'var(--surface2)'}}>
+            <th style={{padding:'4px 8px',textAlign:'left',color:'var(--muted)',fontWeight:600,fontSize:10,...mono}}>EXERCICE</th>
+            {tab.cols.map((c,i)=><th key={i} style={{padding:'4px 6px',color:'var(--muted)',fontWeight:600,fontSize:10,textAlign:'center',...mono}}>{c}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r,i)=>(
+            <tr key={i} style={{borderTop:'1px solid var(--border)'}}>
+              <td style={{padding:'4px 8px',color:'var(--text)',fontSize:12}}>{r.ex}</td>
+              {r.vals.map((v,j)=><td key={j} style={{padding:'4px 6px',textAlign:'center',color:v?'var(--accent)':'var(--muted)',...mono,fontSize:11}}>{v||'—'}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>;
+  }
+
   function Training(){
     return <div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
@@ -449,6 +538,10 @@ function App(){
             <input type="number" inputMode="decimal" value={ns.calories||''} placeholder="0" onChange={e=>setNs(s=>({...s,calories:e.target.value}))} style={{width:90,padding:'5px 8px',textAlign:'center',...mono}}/>
             <span style={{fontSize:11,color:'var(--muted)',...mono}}>kcal</span>
           </div>
+          {ns.type==='Force'&&<div style={{gridColumn:'1/-1'}}>
+            <div style={{fontSize:10,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:5}}>Programme de séance</div>
+            {TableauEditor({tab:ns.tableau,onTab:t=>setNs(s=>({...s,tableau:t}))})}
+          </div>}
         </div>
         <div style={{display:'flex',gap:6}}>
           <button onClick={saveNewSess} style={{...btnG,flex:1,padding:'8px',textAlign:'center'}}>Sauvegarder</button>
@@ -468,6 +561,10 @@ function App(){
                   <input type="number" inputMode="decimal" value={editSess.duree} onChange={e=>setES(x=>({...x,duree:e.target.value}))} style={{padding:'6px 8px',...mono}}/>
                   <select value={editSess.statut} onChange={e=>setES(x=>({...x,statut:e.target.value}))} style={{padding:'6px 8px'}}>{STATUTS.map(t=><option key={t}>{t}</option>)}</select>
                   <div style={{display:'flex',alignItems:'center',gap:6}}><span>🔥</span><input type="number" inputMode="decimal" value={editSess.calories||''} placeholder="kcal" onChange={e=>setES(x=>({...x,calories:e.target.value}))} style={{width:'100%',padding:'6px 8px',...mono}}/></div>
+                  {editSess.type==='Force'&&<div style={{gridColumn:'1/-1'}}>
+                    <div style={{fontSize:10,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:5}}>Programme de séance</div>
+                    {TableauEditor({tab:editSess.tableau||emptyTab(),onTab:t=>setES(x=>({...x,tableau:t}))})}
+                  </div>}
                 </div>
                 <div style={{display:'flex',gap:6}}>
                   <button onClick={()=>updSess(ds)} style={{...btnG,padding:'6px 14px'}}>OK</button>
@@ -475,24 +572,27 @@ function App(){
                   <button onClick={()=>delSess(ds)} style={{...btnB,marginLeft:'auto',padding:'6px 10px',color:'var(--red)',borderColor:'rgba(255,77,77,.3)'}}>🗑</button>
                 </div>
               </div>
-              :<div style={{display:'flex',gap:10,alignItems:'center'}} onClick={()=>setSel(ds)}>
-                <div style={{width:36,textAlign:'center',flexShrink:0}}>
-                  <div style={{fontSize:9,color:'var(--muted)',...mono}}>{new Date(ds+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short'})}</div>
-                  <div style={{fontSize:17,fontWeight:700}}>{new Date(ds+'T12:00:00').getDate()}</div>
-                  <div style={{fontSize:9,color:'var(--muted)',...mono}}>{new Date(ds+'T12:00:00').toLocaleDateString('fr-FR',{month:'short'})}</div>
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13,fontWeight:600,marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.title}</div>
-                  <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-                    {[s.type,s.duree+'min',s.calories>0?'🔥'+s.calories+'kcal':null].filter(Boolean).map((t,i)=>(
-                      <span key={i} style={{fontSize:10,padding:'1px 6px',borderRadius:4,background:'var(--surface2)',color:t.includes('kcal')?'var(--orange)':'var(--muted)',border:'1px solid var(--border)',...mono}}>{t}</span>
-                    ))}
+              :<div onClick={()=>setSel(ds)}>
+                <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                  <div style={{width:36,textAlign:'center',flexShrink:0}}>
+                    <div style={{fontSize:9,color:'var(--muted)',...mono}}>{new Date(ds+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short'})}</div>
+                    <div style={{fontSize:17,fontWeight:700}}>{new Date(ds+'T12:00:00').getDate()}</div>
+                    <div style={{fontSize:9,color:'var(--muted)',...mono}}>{new Date(ds+'T12:00:00').toLocaleDateString('fr-FR',{month:'short'})}</div>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:600,marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.title}</div>
+                    <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                      {[s.type,s.duree+'min',s.calories>0?'🔥'+s.calories+'kcal':null].filter(Boolean).map((t,i)=>(
+                        <span key={i} style={{fontSize:10,padding:'1px 6px',borderRadius:4,background:'var(--surface2)',color:t.includes('kcal')?'var(--orange)':'var(--muted)',border:'1px solid var(--border)',...mono}}>{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:5,flexShrink:0}}>
+                    <span style={{fontSize:9,padding:'2px 7px',borderRadius:20,...mono,background:done?'var(--gi)':mod?'var(--oi)':ann?'rgba(255,77,77,.08)':'var(--surface2)',color:done?'var(--accent)':mod?'var(--orange)':ann?'var(--red)':'var(--muted)',border:'1px solid '+(done?'var(--gb)':mod?'var(--ob)':ann?'rgba(255,77,77,.25)':'var(--border)')}}>{s.statut}</span>
+                    <button onClick={e=>{e.stopPropagation();setES({...s,date:ds,tableau:s.tableau||emptyTab()});}} style={{...btnB,padding:'3px 8px',fontSize:11}}>✏️</button>
                   </div>
                 </div>
-                <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:5,flexShrink:0}}>
-                  <span style={{fontSize:9,padding:'2px 7px',borderRadius:20,...mono,background:done?'var(--gi)':mod?'var(--oi)':ann?'rgba(255,77,77,.08)':'var(--surface2)',color:done?'var(--accent)':mod?'var(--orange)':ann?'var(--red)':'var(--muted)',border:'1px solid '+(done?'var(--gb)':mod?'var(--ob)':ann?'rgba(255,77,77,.25)':'var(--border)')}}>{s.statut}</span>
-                  <button onClick={e=>{e.stopPropagation();setES({...s,date:ds});}} style={{...btnB,padding:'3px 8px',fontSize:11}}>✏️</button>
-                </div>
+                {s.tableau&&TableauView({tab:s.tableau})}
               </div>
             }
           </div>;
