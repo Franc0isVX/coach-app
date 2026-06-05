@@ -270,6 +270,8 @@ function App(){
   const [nr,setNr]     = useState({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});
   const [addSess,setAS] = useState(false);
   const [editSess,setES] = useState(null);
+  const [impSess,setImpSess] = useState(false);
+  const [impText,setImpText] = useState('');
   const emptyTab = ()=>({cols:['S1','S2','S3'],rows:[{ex:'',vals:['','','']}]});
   const [ns,setNs]     = useState({date:'',title:'',type:'Cardio',duree:60,statut:'À faire',calories:0,tableau:emptyTab()});
   const chatRef        = useRef(null);
@@ -551,12 +553,50 @@ function App(){
     </div>;
   }
 
+  function doImportSess(){
+    try{
+      const arr=JSON.parse(impText);
+      if(!Array.isArray(arr))throw 0;
+      const valid=arr.filter(s=>s.date&&s.title);
+      if(!valid.length)throw 0;
+      const ns2={...sess};
+      valid.forEach(s=>{
+        ns2[s.date]={title:s.title,type:s.type||'Cardio',duree:+s.duree||60,statut:s.statut||'À faire',source:'Notion',calories:+s.calories||0};
+        if(s.type==='Force'&&!ns2[s.date].tableau)ns2[s.date].tableau=emptyTab();
+      });
+      saveSess(ns2);setImpSess(false);setImpText('');flash('✓ '+valid.length+' séance(s) importée(s)');
+    }catch{flash('⚠ JSON invalide');}
+  }
+
   function Training(){
+    let impPreview=[];
+    try{if(impText.trim())impPreview=JSON.parse(impText).filter(s=>s.date&&s.title);}catch{}
     return <div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
         <div style={{fontSize:15,fontWeight:600}}>Seances <span style={{fontSize:11,color:'var(--muted)',fontWeight:400}}>({Object.keys(sess).length})</span></div>
-        <button onClick={()=>setAS(true)} style={{...btnG,padding:'6px 14px'}}>+ Ajouter</button>
+        <div style={{display:'flex',gap:6}}>
+          <button onClick={()=>{setImpSess(v=>!v);setImpText('');}} style={{...btnB,padding:'6px 12px'}}>📋 Notion</button>
+          <button onClick={()=>setAS(true)} style={{...btnG,padding:'6px 14px'}}>+ Ajouter</button>
+        </div>
       </div>
+      {impSess&&<div style={{...card,padding:12,marginBottom:12}}>
+        <div style={{fontSize:12,fontWeight:600,marginBottom:6}}>Importer depuis Notion</div>
+        <div style={{fontSize:10,color:'var(--muted)',marginBottom:8,...mono,lineHeight:1.6}}>
+          {'Colle un tableau JSON depuis Notion :'}<br/>
+          {'[{"date":"2026-06-10","title":"HIIT","type":"HIIT","duree":45},...]'}
+        </div>
+        <textarea value={impText} onChange={e=>setImpText(e.target.value)}
+          placeholder={'[\n  {"date":"2026-06-10","title":"HIIT Hyrox","type":"HIIT","duree":45,"statut":"À faire"},\n  {"date":"2026-06-12","title":"Force Upper","type":"Force","duree":60}\n]'}
+          style={{width:'100%',minHeight:120,padding:'8px 10px',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:6,color:'var(--text)',fontFamily:"'JetBrains Mono',monospace",fontSize:11,resize:'vertical'}}/>
+        {impPreview.length>0&&<div style={{marginTop:8,padding:'7px 10px',background:'var(--gi)',border:'1px solid var(--gb)',borderRadius:6}}>
+          <div style={{fontSize:10,...mono,color:'var(--accent)',marginBottom:4}}>{impPreview.length} séance(s) détectée(s)</div>
+          {impPreview.map((s,i)=><div key={i} style={{fontSize:11,color:'var(--text)',...mono}}>• {s.date} — {s.title} ({s.type||'Cardio'}, {s.duree||60}min)</div>)}
+        </div>}
+        <div style={{display:'flex',gap:6,marginTop:8}}>
+          <button onClick={doImportSess} disabled={!impPreview.length} style={{...btnG,flex:1,padding:'8px',textAlign:'center',opacity:impPreview.length?1:0.4}}>Importer {impPreview.length>0?impPreview.length+' séance(s)':''}</button>
+          <button onClick={()=>{setImpSess(false);setImpText('');}} style={{...btnB,padding:'8px 14px'}}>Annuler</button>
+        </div>
+      </div>}
       {addSess&&<div style={{...card,padding:12,marginBottom:12}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
           <div><input type="date" value={ns.date} onChange={e=>setNs(s=>({...s,date:e.target.value}))} style={{width:'100%',padding:'7px 9px'}}/></div>
