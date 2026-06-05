@@ -304,6 +304,33 @@ function App(){
   }
 
   // ── Repas ──
+  function FoodRow({slot, row, idx}){
+    const f = afw[row.food];
+    const ul = f?(f.ul||(f.unit==='unit'?'u':f.unit==='ml'?'ml':'g')):'g';
+    // State local pour la quantité — évite le re-render pendant la frappe
+    const [localQty, setLocalQty] = useState(row.qty||'');
+    useEffect(()=>{ setLocalQty(row.qty||''); },[row.qty]);
+    const rk = f&&localQty>0 ? Math.round(f.kcal*gew(f,+localQty)/100) : 0;
+    return <div className="meal-row">
+      <div className="meal-row-top">
+        <select value={row.food} onChange={e=>updRow(sel,slot.id,idx,'food',e.target.value)}>
+          <option value="">— Choisir un aliment —</option>
+          <optgroup label="Recettes">{Object.keys(afw).filter(x=>x.startsWith('[R]')).sort().map(x=><option key={x} value={x}>{x.replace('[R] ','')}</option>)}</optgroup>
+          <optgroup label="Aliments">{Object.keys(afw).filter(x=>!x.startsWith('[R]')).sort().map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
+        </select>
+        <button className="meal-del" onClick={()=>delRow(sel,slot.id,idx)}>✕</button>
+      </div>
+      <div className="meal-row-bottom">
+        <input type="number" min={0} step={f?.unit==='unit'?1:5}
+          value={localQty} placeholder="Quantite"
+          onChange={e=>setLocalQty(e.target.value)}
+          onBlur={e=>updRow(sel,slot.id,idx,'qty',e.target.value)}/>
+        <span className="meal-unit">{ul}</span>
+        <span className="meal-kcal">{rk>0?rk+' kcal':'—'}</span>
+      </div>
+    </div>;
+  }
+
   function MealCard({slot}){
     const rows=gm(sel)[slot.id]||[];
     const mk=Math.round(rows.reduce((s,r)=>{const f=afw[r.food];if(!f||!r.qty)return s;const g=gew(f,r.qty);return s+(g>0?f.kcal*g/100:0);},0));
@@ -312,30 +339,7 @@ function App(){
         <span style={{fontSize:13,fontWeight:600}}>{slot.ic} {slot.l}</span>
         <span style={{fontSize:12,color:'var(--accent)',fontWeight:600,...mono}}>{mk>0?mk+' kcal':'—'}</span>
       </div>
-      {rows.map((row,idx)=>{
-        const f=afw[row.food];
-        const rk=f&&row.qty>0?Math.round(f.kcal*gew(f,row.qty)/100):0;
-        const ul=f?(f.ul||(f.unit==='unit'?'u':f.unit==='ml'?'ml':'g')):'g';
-        return <div key={idx} className="meal-row">
-          {/* Ligne 1 : sélecteur aliment + bouton suppr */}
-          <div className="meal-row-top">
-            <select value={row.food} onChange={e=>updRow(sel,slot.id,idx,'food',e.target.value)}>
-              <option value="">— Choisir un aliment —</option>
-              <optgroup label="Recettes">{Object.keys(afw).filter(x=>x.startsWith('[R]')).sort().map(x=><option key={x} value={x}>{x.replace('[R] ','')}</option>)}</optgroup>
-              <optgroup label="Aliments">{Object.keys(afw).filter(x=>!x.startsWith('[R]')).sort().map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
-            </select>
-            <button className="meal-del" onClick={()=>delRow(sel,slot.id,idx)}>✕</button>
-          </div>
-          {/* Ligne 2 : quantité + unité + kcal */}
-          <div className="meal-row-bottom">
-            <input type="number" min={0} step={f?.unit==='unit'?1:5}
-              value={row.qty||''} placeholder="Quantité"
-              onChange={e=>updRow(sel,slot.id,idx,'qty',e.target.value)}/>
-            <span className="meal-unit">{ul}</span>
-            <span className="meal-kcal">{rk>0?rk+' kcal':'—'}</span>
-          </div>
-        </div>;
-      })}
+      {rows.map((row,idx)=><FoodRow key={slot.id+'-'+idx} slot={slot} row={row} idx={idx}/>)}
       <div style={{padding:'6px 8px'}}>
         <button onClick={()=>addRow(sel,slot.id)} style={{width:'100%',padding:'6px',fontSize:12,border:'1px dashed var(--border)',borderRadius:6,background:'none',color:'var(--muted)',cursor:'pointer'}}>
           + Ajouter un aliment
