@@ -2,8 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="referrer" content="always">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Coach Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16,151 +15,162 @@
   --oi:rgba(241,160,53,.08);--ob:rgba(241,160,53,.25);
   --nav:58px;
 }
+*{box-sizing:border-box;}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overscroll-behavior:none;}
 button{font-family:inherit;cursor:pointer;}
-input,select{font-family:inherit;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;outline:none;}
+input,select{
+  font-family:inherit;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  color:var(--text);
+  border-radius:6px;
+  outline:none;
+  /* Anti-zoom iOS — min 16px */
+  font-size:16px;
+}
 input:focus,select:focus{border-color:var(--accent);}
 select option{background:var(--surface2);}
 .mono{font-family:'JetBrains Mono',monospace;}
+
 /* Nav */
 .bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav);background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom,0px);}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;color:var(--muted);font-size:9px;font-family:'Inter',sans-serif;padding:4px 0;}
 .ni.on{color:var(--accent);}
 .ni .ic{font-size:20px;line-height:1;}
+
 /* Layout */
 .page{padding:10px 12px calc(var(--nav) + 16px + env(safe-area-inset-bottom,0px));max-width:100%;}
+
 /* Cal */
 .cal-hdr{display:flex;align-items:center;padding:10px 14px;gap:8px;cursor:pointer;background:var(--surface);border-bottom:1px solid var(--border);}
 .cal-body{overflow:hidden;transition:max-height .3s ease;background:var(--surface);border-bottom:1px solid var(--border);}
+
 /* Cards */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;}
-.card2{background:var(--surface2);border:1px solid var(--border);border-radius:8px;}
-/* Meals */
-.mg{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-@media(max-width:380px){.mg{grid-template-columns:1fr;}}
+
 /* Header */
 .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;}
+
+/* ── Repas : layout une ligne par aliment ── */
+.meal-row{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:6px 8px;
+  border-bottom:1px solid var(--border);
+}
+.meal-row-top{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.meal-row-top select{
+  flex:1;
+  font-size:15px;
+  padding:5px 6px;
+  border-radius:6px;
+  min-width:0;
+}
+.meal-row-bottom{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.meal-row-bottom input[type=number]{
+  width:80px;
+  font-size:15px;
+  padding:5px 8px;
+  text-align:center;
+  border-radius:6px;
+  font-family:'JetBrains Mono',monospace;
+}
+.meal-unit{
+  font-size:11px;
+  color:var(--muted);
+  font-family:'JetBrains Mono',monospace;
+  min-width:24px;
+}
+.meal-kcal{
+  font-size:12px;
+  color:var(--accent);
+  font-weight:600;
+  font-family:'JetBrains Mono',monospace;
+  margin-left:auto;
+}
+.meal-del{
+  background:none;
+  border:none;
+  cursor:pointer;
+  color:var(--muted);
+  font-size:16px;
+  padding:2px 4px;
+  flex-shrink:0;
+}
+
+/* Meals grid 2 colonnes */
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:400px){.mg{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
 <div id="app"></div>
-
-<!-- Moteur de l'application -->
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
-
 <script type="text/babel">
 const {useState,useEffect,useRef} = React;
 
-// Configuration locale sans serveur (GitHub Pages)
-const TK    = 1965;
-const RK    = 1665;
-const MP    = {p:177,l:88};
+const TK = 1965, RK = 1665, MP = {p:177,l:88};
 
-// ── DONNÉES HISTORIQUES DU NAS ──
 const NAS_SESSIONS = {
-  "2026-06-03": { "title": "Test", "type": "Force", "duree": 70, "statut": "Fait", "source": "Manuel", "calories": 420 }
+  "2026-06-03":{title:"Test",type:"Force",duree:70,statut:"Fait",source:"Manuel",calories:420}
 };
-
 const NAS_FOODS = {
-  "Margarine": { "kcal": 720, "p": 0, "l": 80, "g": 0, "unit": "g" },
-  "Confiture ss sucre": { "kcal": 89, "p": 0, "l": 0, "g": 21.7, "unit": "g" },
-  "Crème de riz": { "kcal": 361, "p": 9.4, "l": 1.4, "g": 73, "unit": "g" },
-  "Native whey Isolat": { "kcal": 370, "p": 81.2, "l": 1.45, "g": 7.2, "unit": "g" },
-  "Gazpacho": { "kcal": 40, "p": 0.9, "l": 2.2, "g": 3.5, "unit": "ml" },
-  "Pomme de terre": { "kcal": 77, "p": 1.8, "l": 0.34, "g": 0.86, "unit": "g" },
-  "Filet de poulet Fleury Michon": { "kcal": 425, "p": 21, "l": 0.5, "g": 0.5, "unit": "g" },
-  "Petit suisse 0%": { "kcal": 56, "p": 9.7, "l": 0.5, "g": 4.1, "unit": "g" },
-  "Noisette": { "kcal": 622, "p": 17, "l": 57, "g": 7.16, "unit": "g" }
+  "Margarine":{kcal:720,p:0,l:80,g:0,unit:"g"},
+  "Confiture ss sucre":{kcal:89,p:0,l:0,g:21.7,unit:"g"},
+  "Creme de riz":{kcal:361,p:9.4,l:1.4,g:73,unit:"g"},
+  "Native whey Isolat":{kcal:370,p:81.2,l:1.45,g:7.2,unit:"g"},
+  "Gazpacho":{kcal:40,p:0.9,l:2.2,g:3.5,unit:"ml"},
+  "Pomme de terre":{kcal:77,p:1.8,l:0.34,g:0.86,unit:"g"},
+  "Filet poulet Fleury Michon":{kcal:425,p:21,l:0.5,g:0.5,unit:"g"},
+  "Petit suisse 0%":{kcal:56,p:9.7,l:0.5,g:4.1,unit:"g"},
+  "Noisette":{kcal:622,p:17,l:57,g:7.16,unit:"g"}
 };
-
 const NAS_DAYS = {
-  "2026-06-03": {
-    "meals": {
-      "matin": [
-        { "food": "Skyr nature", "qty": 45 },
-        { "food": "Œufs entiers", "qty": 4 },
-        { "food": "Confiture ss sucre", "qty": 15 },
-        { "food": "Pain complet", "qty": 70 }
-      ],
-      "midi": [
-        { "food": "Native whey Isolat", "qty": 30 },
-        { "food": "Poulet (blanc,cuit)", "qty": 170 },
-        { "food": "Huile d'olive", "qty": 15 },
-        { "food": "Pomme de terre", "qty": 110 }
-      ],
-      "collation": [
-        { "food": "Crème de riz", "qty": 50 },
-        { "food": "Banane", "qty": 1 }
-      ],
-      "soir": [
-        { "food": "Pâtes (cuites)", "qty": 30 },
-        { "food": "Amandes", "qty": 30 },
-        { "food": "Filet de poulet Fleury Michon", "qty": 120 },
-        { "food": "Petit suisse 0%", "qty": 240 }
-      ]
-    },
-    "cal": 780
-  },
-  "2026-06-04": {
-    "meals": {
-      "matin": [
-        { "food": "Skyr nature", "qty": 45 },
-        { "food": "Amandes", "qty": 10 },
-        { "food": "Noisette", "qty": 10 },
-        { "food": "Œufs entiers", "qty": 4 },
-        { "food": "Pain complet", "qty": 50 },
-        { "food": "Banane", "qty": 0.5 }
-      ],
-      "midi": [
-        { "food": "Poulet (blanc,cuit)", "qty": 120 },
-        { "food": "Pâtes (cuites)", "qty": 80 }
-      ],
-      "collation": [],
-      "soir": []
-    }
-  }
+  "2026-06-03":{meals:{matin:[{food:"Skyr nature",qty:45},{food:"Oeufs entiers",qty:4},{food:"Confiture ss sucre",qty:15},{food:"Pain complet",qty:70}],midi:[{food:"Native whey Isolat",qty:30},{food:"Poulet blanc cuit",qty:170},{food:"Huile olive",qty:15},{food:"Pomme de terre",qty:110}],collation:[{food:"Creme de riz",qty:50},{food:"Banane",qty:1}],soir:[{food:"Pates cuites",qty:30},{food:"Amandes",qty:30},{food:"Filet poulet Fleury Michon",qty:120},{food:"Petit suisse 0%",qty:240}]},cal:780},
+  "2026-06-04":{meals:{matin:[{food:"Skyr nature",qty:45},{food:"Amandes",qty:10},{food:"Noisette",qty:10},{food:"Oeufs entiers",qty:4},{food:"Pain complet",qty:50},{food:"Banane",qty:0.5}],midi:[{food:"Poulet blanc cuit",qty:120},{food:"Pates cuites",qty:80}],collation:[],soir:[]}}
 };
 
-// Fonctions de gestion du stockage local
-function localGet(key, fallback = {}) {
-  try { 
-    const item = localStorage.getItem('hyrox_' + key);
-    if (!item || item === '{}') return fallback;
-    return JSON.parse(item); 
-  } 
-  catch { return fallback; }
-}
-function localSet(key, data) {
-  localStorage.setItem('hyrox_' + key, JSON.stringify(data));
-}
+function localGet(k,fb={}){try{const i=localStorage.getItem('hyrox_'+k);return i?JSON.parse(i):fb;}catch{return fb;}}
+function localSet(k,d){localStorage.setItem('hyrox_'+k,JSON.stringify(d));}
 
-const MEALS = [{id:'matin',l:'Matin',ic:'☀️'},{id:'midi',l:'Midi',ic:'🌤️'},{id:'collation',l:'Collation',ic:'🍎'},{id:'soir',l:'Soir',ic:'🌙'}];
-const TABS  = [{id:'nutrition',ic:'🍽',l:'Nutrition'},{id:'training',ic:'🏋️',l:'Séances'},{id:'analytics',ic:'📊',l:'Stats'},{id:'recettes',ic:'📖',l:'Recettes'},{id:'coach',ic:'🤖',l:'Coach'}];
+const MEALS=[{id:'matin',l:'Matin',ic:'☀️'},{id:'midi',l:'Midi',ic:'🌤️'},{id:'collation',l:'Collation',ic:'🍎'},{id:'soir',l:'Soir',ic:'🌙'}];
+const TABS=[{id:'nutrition',ic:'🍽',l:'Nutrition'},{id:'training',ic:'🏋️',l:'Séances'},{id:'analytics',ic:'📊',l:'Stats'},{id:'recettes',ic:'📖',l:'Recettes'},{id:'coach',ic:'🤖',l:'Coach'}];
+const TYPES=['Cardio','Force','HIIT','Hyrox Coach','Mobilité','Autre'];
+const STATUTS=['À faire','Fait','Modifié','Annulé'];
 
-const BF = {
-  'Poulet (blanc,cuit)':{kcal:165,p:31,l:3.6,g:0,unit:'g'},
-  'Saumon (cuit)':{kcal:208,p:20,l:13,g:0,unit:'g'},
-  'Thon en boîte':{kcal:116,p:26,l:1,g:0,unit:'g'},
-  'Œufs entiers':{kcal:155,p:13,l:11,g:1,unit:'unit',uw:60},
-  "Blancs d'œufs":{kcal:52,p:11,l:0.2,g:1,unit:'unit',uw:35},
-  'Bœuf haché 5%':{kcal:137,p:21,l:5,g:0,unit:'g'},
+const BF={
+  'Poulet blanc cuit':{kcal:165,p:31,l:3.6,g:0,unit:'g'},
+  'Saumon cuit':{kcal:208,p:20,l:13,g:0,unit:'g'},
+  'Thon en boite':{kcal:116,p:26,l:1,g:0,unit:'g'},
+  'Oeufs entiers':{kcal:155,p:13,l:11,g:1,unit:'unit',uw:60},
+  'Blancs oeufs':{kcal:52,p:11,l:0.2,g:1,unit:'unit',uw:35},
+  'Boeuf hache 5%':{kcal:137,p:21,l:5,g:0,unit:'g'},
   'Fromage blanc 0%':{kcal:45,p:8,l:0.2,g:3.5,unit:'g'},
   'Skyr nature':{kcal:65,p:11,l:0.2,g:4,unit:'g'},
-  'Whey protéine':{kcal:380,p:75,l:5,g:8,unit:'g'},
-  'Riz basmati (cuit)':{kcal:130,p:2.7,l:0.3,g:28,unit:'g'},
-  'Pâtes (cuites)':{kcal:131,p:5,l:1,g:25,unit:'g'},
-  "Flocons d'avoine":{kcal:370,p:13,l:7,g:60,unit:'g'},
+  'Whey proteine':{kcal:380,p:75,l:5,g:8,unit:'g'},
+  'Riz basmati cuit':{kcal:130,p:2.7,l:0.3,g:28,unit:'g'},
+  'Pates cuites':{kcal:131,p:5,l:1,g:25,unit:'g'},
+  'Flocons avoine':{kcal:370,p:13,l:7,g:60,unit:'g'},
   'Pain complet':{kcal:247,p:9,l:3,g:44,unit:'g'},
-  'Patate douce (cuite)':{kcal:90,p:2,l:0.1,g:21,unit:'g'},
+  'Patate douce cuite':{kcal:90,p:2,l:0.1,g:21,unit:'g'},
   'Banane':{kcal:89,p:1.1,l:0.3,g:23,unit:'unit',uw:120},
-  'Épinards':{kcal:23,p:2.9,l:0.4,g:3.6,unit:'g'},
+  'Epinards':{kcal:23,p:2.9,l:0.4,g:3.6,unit:'g'},
   'Brocolis':{kcal:35,p:2.4,l:0.4,g:7,unit:'g'},
   'Avocat':{kcal:160,p:2,l:15,g:9,unit:'g'},
   'Amandes':{kcal:579,p:21,l:50,g:22,unit:'g'},
   'Yaourt grec entier':{kcal:97,p:9,l:5,g:3.6,unit:'g'},
-  "Huile d'olive":{kcal:884,p:0,l:100,g:0,unit:'ml'},
+  'Huile olive':{kcal:884,p:0,l:100,g:0,unit:'ml'},
   'Jambon blanc':{kcal:107,p:17,l:3,g:2,unit:'g'},
   'Feta':{kcal:264,p:14,l:21,g:4,unit:'g'},
 };
@@ -181,48 +191,38 @@ function Bar({v,max,c='var(--accent)'}){
 }
 
 function App(){
-  const [tab,setTab]     = useState('nutrition');
-  const [sel,setSel]     = useState(today());
-  const [vy,setVy]       = useState(new Date().getFullYear());
-  const [vm,setVm]       = useState(new Date().getMonth());
+  const [tab,setTab]   = useState('nutrition');
+  const [sel,setSel]   = useState(today());
+  const [vy,setVy]     = useState(new Date().getFullYear());
+  const [vm,setVm]     = useState(new Date().getMonth());
   const [calOpen,setCal] = useState(false);
-  
-  // Initialisation avec fallback sur les données du NAS
-  const [days,setDays]   = useState(() => localGet('days', NAS_DAYS));
-  const [cf,setCf]       = useState(() => localGet('foods', NAS_FOODS));
-  const [recs,setRecs]   = useState(() => localGet('recipes', {}));
-  const [sess,setSess]   = useState(() => localGet('sessions', NAS_SESSIONS));
-  
-  const [nas,setNas]     = useState('...');
+  const [days,setDays] = useState(()=>localGet('days',NAS_DAYS));
+  const [cf,setCf]     = useState(()=>localGet('foods',NAS_FOODS));
+  const [recs,setRecs] = useState(()=>localGet('recipes',{}));
+  const [sess,setSess] = useState(()=>localGet('sessions',NAS_SESSIONS));
   const [badge,setBadge] = useState('');
   const [aiMsgs,setAiMsgs] = useState([]);
-  const [aiIn,setAiIn]   = useState('');
+  const [aiIn,setAiIn] = useState('');
   const [aiLoad,setAiLoad] = useState(false);
-  const [addFood,setAddFood] = useState(false);
-  const [nf,setNf]       = useState({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});
-  const [rtab,setRtab]   = useState('list');
-  const [nr,setNr]       = useState({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});
-  const [addSess,setAddSess] = useState(false);
-  const [editSess,setEditSess] = useState(null);
-  const [ns,setNs]       = useState({date:'',title:'',type:'Cardio',duree:60,statut:'À faire',source:'Manuel',calories:0});
-  const chatRef          = useRef(null);
-  const fileInputRef     = useRef(null);
+  const [addFood,setAF] = useState(false);
+  const [nf,setNf]     = useState({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});
+  const [rtab,setRtab] = useState('list');
+  const [nr,setNr]     = useState({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});
+  const [addSess,setAS] = useState(false);
+  const [editSess,setES] = useState(null);
+  const [ns,setNs]     = useState({date:'',title:'',type:'Cardio',duree:60,statut:'À faire',calories:0});
+  const chatRef        = useRef(null);
+  const fileRef        = useRef(null);
 
   useEffect(()=>{
-    // Forcer la première écriture si le localStorage est totalement vide
-    if(!localStorage.getItem('hyrox_days')) {
-      localSet('days', NAS_DAYS);
-      localSet('foods', NAS_FOODS);
-      localSet('sessions', NAS_SESSIONS);
-    }
-    setNas('ok');
-    flash('✓ Mode Local Synchronisé');
+    if(!localStorage.getItem('hyrox_days')){localSet('days',NAS_DAYS);localSet('foods',NAS_FOODS);localSet('sessions',NAS_SESSIONS);}
+    flash('✓ Données chargées');
   },[]);
 
   function flash(m){setBadge(m);setTimeout(()=>setBadge(''),3000);}
 
-  const af = {...BF,...cf};
-  const afw = {...af};
+  const af={...BF,...cf};
+  const afw={...af};
   Object.entries(recs).forEach(([n,r])=>{
     if(r.totals&&r.portions) afw['[R] '+n]={kcal:Math.round(r.totals.kcal/r.portions),p:Math.round(r.totals.p/r.portions*10)/10,l:Math.round(r.totals.l/r.portions*10)/10,g:Math.round(r.totals.g/r.portions*10)/10,unit:'unit',uw:1,ul:'portion(s)'};
   });
@@ -234,53 +234,22 @@ function App(){
   const gt   = ds=>totals(gm(ds),afw);
   const gb   = ds=>days[ds]?.cal||0;
 
-  async function saveDay(dd,ds){setDays(dd); localSet('days', dd);}
-  async function saveCf(){if(!nf.name||!nf.kcal)return;const c={...cf,[nf.name]:{kcal:+nf.kcal,p:+nf.p||0,l:+nf.l||0,g:+nf.g||0,unit:nf.unit}};setCf(c); localSet('foods',c); flash('✓ '+nf.name);setNf({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});setAddFood(false);}
-
-  function rTotals(ings){let k=0,p=0,l=0,g=0;ings.forEach(r=>{const f=af[r.food];if(f&&r.qty>0){const gr=gew(f,r.qty);const x=gr/100;k+=f.kcal*x;p+=f.p*x;l+=f.l*x;g+=f.g*x;}});return{kcal:Math.round(k),p:Math.round(p),l:Math.round(l),g:Math.round(g)};}
-  async function saveRec(){if(!nr.name)return;const ings=nr.ings.filter(i=>i.food&&i.qty>0);if(!ings.length)return;const t=rTotals(ings);const r={...recs,[nr.name]:{portions:nr.portions,desc:nr.desc,ingredients:ings,totals:t}};setRecs(r); localSet('recipes',r); flash('✓ '+nr.name);setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});setRtab('list');}
-  async function delRec(n){const r={...recs};delete r[n];setRecs(r); localSet('recipes',r);}
-
-  async function saveSess(s){setSess(s); localSet('sessions',s); flash('✓ Séances');}
-  async function saveNewSess(){if(!ns.title||!ns.date)return;await saveSess({...sess,[ns.date]:{title:ns.title,type:ns.type,duree:+ns.duree,statut:ns.statut,source:ns.source||'Manuel',calories:+ns.calories||0}});setNs({date:'',title:'',type:'Cardio',duree:60,statut:'À faire',source:'Manuel',calories:0});setAddSess(false);}
-  async function updSess(ds){await saveSess({...sess,[ds]:{...editSess}});setEditSess(null);}
-  async function delSess(ds){const s={...sess};delete s[ds];await saveSess(s);}
-
-  function setCal2(ds,v){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].cal=v;saveDay(dd,ds);}
+  function saveDay(dd,ds){setDays(dd);localSet('days',dd);}
   function addRow(ds,mid){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].meals[mid]=[...(dd[ds].meals[mid]||[]),{food:'',qty:0}];saveDay(dd,ds);}
   function updRow(ds,mid,idx,fld,val){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};const row=dd[ds].meals[mid][idx];if(!row)return;if(fld==='food'){row.food=val;row.qty=0;}else row.qty=parseFloat(val)||0;saveDay(dd,ds);}
   function delRow(ds,mid,idx){const dd=JSON.parse(JSON.stringify(days));dd[ds].meals[mid].splice(idx,1);saveDay(dd,ds);}
+  function setCalB(ds,v){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].cal=v;saveDay(dd,ds);}
+  function saveCf(){if(!nf.name||!nf.kcal)return;const c={...cf,[nf.name]:{kcal:+nf.kcal,p:+nf.p||0,l:+nf.l||0,g:+nf.g||0,unit:nf.unit}};setCf(c);localSet('foods',c);flash('✓ '+nf.name);setNf({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});setAF(false);}
+  function rTotals(ings){let k=0,p=0,l=0,g=0;ings.forEach(r=>{const f=af[r.food];if(f&&r.qty>0){const gr=gew(f,r.qty);const x=gr/100;k+=f.kcal*x;p+=f.p*x;l+=f.l*x;g+=f.g*x;}});return{kcal:Math.round(k),p:Math.round(p),l:Math.round(l),g:Math.round(g)};}
+  function saveRec(){if(!nr.name)return;const ings=nr.ings.filter(i=>i.food&&i.qty>0);if(!ings.length)return;const t=rTotals(ings);const r={...recs,[nr.name]:{portions:nr.portions,desc:nr.desc,ingredients:ings,totals:t}};setRecs(r);localSet('recipes',r);flash('✓ '+nr.name);setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});setRtab('list');}
+  function delRec(n){const r={...recs};delete r[n];setRecs(r);localSet('recipes',r);}
+  function saveSess(s){setSess(s);localSet('sessions',s);flash('✓ Séances');}
+  function saveNewSess(){if(!ns.title||!ns.date)return;saveSess({...sess,[ns.date]:{title:ns.title,type:ns.type,duree:+ns.duree,statut:ns.statut,source:'Manuel',calories:+ns.calories||0}});setNs({date:'',title:'',type:'Cardio',duree:60,statut:'À faire',calories:0});setAS(false);}
+  function updSess(ds){saveSess({...sess,[ds]:{...editSess}});setES(null);}
+  function delSess(ds){const s={...sess};delete s[ds];saveSess(s);}
 
-  // Système Export / Import global
-  function exportData() {
-    const backup = { days, foods: cf, recipes: recs, sessions: sess };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `hyrox_backup_${today()}.json`;
-    a.click();
-    flash('✓ JSON Exporté');
-  }
-
-  function importData(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const data = JSON.parse(evt.target.result);
-        if (data.days) { setDays(data.days); localSet('days', data.days); }
-        if (data.foods) { setCf(data.foods); localSet('foods', data.foods); }
-        if (data.recipes) { setRecs(data.recipes); localSet('recipes', data.recipes); }
-        if (data.sessions) { setSess(data.sessions); localSet('sessions', data.sessions); }
-        flash('🚀 Import Réussi !');
-      } catch {
-        alert('Erreur lors de la lecture du JSON.');
-      }
-    };
-    reader.readAsText(file);
-  }
+  function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();flash('✓ Exporté');}
+  function importData(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=evt=>{try{const d=JSON.parse(evt.target.result);if(d.days){setDays(d.days);localSet('days',d.days);}if(d.foods){setCf(d.foods);localSet('foods',d.foods);}if(d.recipes){setRecs(d.recipes);localSet('recipes',d.recipes);}if(d.sessions){setSess(d.sessions);localSet('sessions',d.sessions);}flash('Import OK');}catch{alert('Erreur JSON');}};reader.readAsText(file);}
 
   async function sendAI(){
     if(!aiIn.trim())return;
@@ -290,7 +259,7 @@ function App(){
     setTimeout(()=>{if(chatRef.current)chatRef.current.scrollTop=chatRef.current.scrollHeight;},50);
     try{
       const t=gt(sel),tgt=gtgt(sel),s=sess[sel];
-      const sys='Tu es Coach HYROX. Jour:'+sel+' | '+tgt+'kcal obj | '+t.kcal+'kcal conso | P:'+t.p+'g L:'+t.l+'g G:'+t.g+'g'+(s?' | Séance:'+s.title:'')+(gb(sel)>0?' | '+gb(sel)+'kcal brûlées':'')+'. Réponds en français, max 120 mots.';
+      const sys='Tu es Coach HYROX. Jour:'+sel+' | '+tgt+'kcal | '+t.kcal+'kcal conso | P:'+t.p+'g L:'+t.l+'g G:'+t.g+'g'+(s?' | Seance:'+s.title:'')+(gb(sel)>0?' | '+gb(sel)+'kcal brulees':'')+'. Reponds en francais, max 120 mots.';
       const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:sys,messages:msgs})});
       const data=await res.json();
       setAiMsgs([...msgs,{role:'assistant',content:data.content?.[0]?.text||'Erreur.'}]);
@@ -299,22 +268,25 @@ function App(){
     setTimeout(()=>{if(chatRef.current)chatRef.current.scrollTop=chatRef.current.scrollHeight;},100);
   }
 
-  // ── Calendrier ──
+  const sT=gt(sel),sTgt=gtgt(sel),sSes=sess[sel],sB=gb(sel),sAdj=sTgt+sB,sRem=sAdj-sT.kcal;
+  const wk=Array.from({length:7},(_,i)=>{const t=new Date(),dw=t.getDay(),mo=new Date(t);mo.setDate(t.getDate()+(dw===0?-6:1-dw));const d=new Date(mo);d.setDate(mo.getDate()+i);const ds=dstr(d);return{ds,day:['Lu','Ma','Me','Je','Ve','Sa','Di'][i],kcal:gt(ds).kcal,target:gtgt(ds),isTr:istr(ds)};});
+  const selLabel=new Date(sel+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+  const mono={fontFamily:"'JetBrains Mono',monospace"};
+  const card={background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10};
+  const btnB={border:'1px solid var(--border)',borderRadius:6,background:'var(--surface2)',color:'var(--muted)',padding:'5px 11px',fontSize:11,...mono,cursor:'pointer'};
+  const btnG={...btnB,borderColor:'var(--accent)',color:'var(--accent)',background:'var(--gi)'};
+
   function Cal(){
-    const months=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
-    const fd=new Date(vy,vm,1).getDay();
-    const off=fd===0?6:fd-1;
-    const dim=new Date(vy,vm+1,0).getDate();
+    const months=['Jan','Fev','Mar','Avr','Mai','Juin','Juil','Aou','Sep','Oct','Nov','Dec'];
+    const fd=new Date(vy,vm,1).getDay(),off=fd===0?6:fd-1,dim=new Date(vy,vm+1,0).getDate();
     const cells=[];
-    ['Lu','Ma','Me','Je','Ve','Sa','Di'].forEach(d=>cells.push(<div key={'w'+d} style={{textAlign:'center',fontSize:9,color:'var(--muted)',paddingBottom:3,fontFamily:"'JetBrains Mono',monospace"}}>{d}</div>));
+    ['Lu','Ma','Me','Je','Ve','Sa','Di'].forEach(d=>cells.push(<div key={'w'+d} style={{textAlign:'center',fontSize:9,color:'var(--muted)',paddingBottom:3,...mono}}>{d}</div>));
     for(let i=0;i<off;i++)cells.push(<div key={'e'+i}/>);
     for(let d=1;d<=dim;d++){
       const ds=vy+'-'+String(vm+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
       const isT=ds===today(),isSel=ds===sel,hasSes=!!sess[ds],hasDat=gt(ds).kcal>0;
       let bg='transparent',br='transparent',tc='var(--text)';
-      if(isT){bg='var(--accent)';tc='#000';}
-      else if(isSel){br='var(--accent)';}
-      else if(hasSes){bg='rgba(53,212,241,.1)';}
+      if(isT){bg='var(--accent)';tc='#000';}else if(isSel){br='var(--accent)';}else if(hasSes){bg='rgba(53,212,241,.1)';}
       cells.push(<div key={ds} onClick={()=>{setSel(ds);setCal(false);}} style={{aspectRatio:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',borderRadius:6,cursor:'pointer',border:'1px solid '+br,background:bg,color:tc,fontSize:11,fontWeight:600,gap:2,position:'relative'}}>
         <span>{d}</span>
         {hasDat&&<div style={{width:3,height:3,borderRadius:'50%',background:isT?'#000':'var(--blue)'}}/>}
@@ -323,33 +295,65 @@ function App(){
     }
     return <div style={{padding:'0 10px 10px'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-        <button onClick={()=>{let m=vm-1,y=vy;if(m<0){m=11;y--;}setVm(m);setVy(y);}} style={{width:28,height:28,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)',borderRadius:6,fontSize:14}}>‹</button>
-        <span style={{fontSize:12,fontWeight:600,fontFamily:"'JetBrains Mono',monospace"}}>{months[vm]} {vy}</span>
-        <button onClick={()=>{let m=vm+1,y=vy;if(m>11){m=0;y++;}setVm(m);setVy(y);}} style={{width:28,height:28,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)',borderRadius:6,fontSize:14}}>›</button>
+        <button onClick={()=>{let m=vm-1,y=vy;if(m<0){m=11;y--;}setVm(m);setVy(y);}} style={{width:28,height:28,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)',borderRadius:6,fontSize:14}}>&#8249;</button>
+        <span style={{fontSize:12,fontWeight:600,...mono}}>{months[vm]} {vy}</span>
+        <button onClick={()=>{let m=vm+1,y=vy;if(m>11){m=0;y++;}setVm(m);setVy(y);}} style={{width:28,height:28,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)',borderRadius:6,fontSize:14}}>&#8250;</button>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2}}>{cells}</div>
     </div>;
   }
 
-  const sT=gt(sel),sTgt=gtgt(sel),sSes=sess[sel],sB=gb(sel),sAdj=sTgt+sB,sRem=sAdj-sT.kcal;
-  const wk=Array.from({length:7},(_,i)=>{const t=new Date(),dw=t.getDay(),mo=new Date(t);mo.setDate(t.getDate()+(dw===0?-6:1-dw));const d=new Date(mo);d.setDate(mo.getDate()+i);const ds=dstr(d);return{ds,day:['Lu','Ma','Me','Je','Ve','Sa','Di'][i],kcal:gt(ds).kcal,target:gtgt(ds),isTr:istr(ds)};});
-  const selLabel=new Date(sel+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
-  const mono={fontFamily:"'JetBrains Mono',monospace"};
-  const card={background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10};
-  const btnB={border:'1px solid var(--border)',borderRadius:6,background:'var(--surface2)',color:'var(--muted)',padding:'4px 10px',fontSize:10,...mono,cursor:'pointer'};
-  const btnG={...btnB,borderColor:'var(--accent)',color:'var(--accent)',background:'var(--gi)'};
+  // ── Repas ──
+  function MealCard({slot}){
+    const rows=gm(sel)[slot.id]||[];
+    const mk=Math.round(rows.reduce((s,r)=>{const f=afw[r.food];if(!f||!r.qty)return s;const g=gew(f,r.qty);return s+(g>0?f.kcal*g/100:0);},0));
+    return <div style={{...card,overflow:'hidden'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 10px',borderBottom:'1px solid var(--border)',background:'var(--surface2)'}}>
+        <span style={{fontSize:13,fontWeight:600}}>{slot.ic} {slot.l}</span>
+        <span style={{fontSize:12,color:'var(--accent)',fontWeight:600,...mono}}>{mk>0?mk+' kcal':'—'}</span>
+      </div>
+      {rows.map((row,idx)=>{
+        const f=afw[row.food];
+        const rk=f&&row.qty>0?Math.round(f.kcal*gew(f,row.qty)/100):0;
+        const ul=f?(f.ul||(f.unit==='unit'?'u':f.unit==='ml'?'ml':'g')):'g';
+        return <div key={idx} className="meal-row">
+          {/* Ligne 1 : sélecteur aliment + bouton suppr */}
+          <div className="meal-row-top">
+            <select value={row.food} onChange={e=>updRow(sel,slot.id,idx,'food',e.target.value)}>
+              <option value="">— Choisir un aliment —</option>
+              <optgroup label="Recettes">{Object.keys(afw).filter(x=>x.startsWith('[R]')).sort().map(x=><option key={x} value={x}>{x.replace('[R] ','')}</option>)}</optgroup>
+              <optgroup label="Aliments">{Object.keys(afw).filter(x=>!x.startsWith('[R]')).sort().map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
+            </select>
+            <button className="meal-del" onClick={()=>delRow(sel,slot.id,idx)}>✕</button>
+          </div>
+          {/* Ligne 2 : quantité + unité + kcal */}
+          <div className="meal-row-bottom">
+            <input type="number" min={0} step={f?.unit==='unit'?1:5}
+              value={row.qty||''} placeholder="Quantité"
+              onChange={e=>updRow(sel,slot.id,idx,'qty',e.target.value)}/>
+            <span className="meal-unit">{ul}</span>
+            <span className="meal-kcal">{rk>0?rk+' kcal':'—'}</span>
+          </div>
+        </div>;
+      })}
+      <div style={{padding:'6px 8px'}}>
+        <button onClick={()=>addRow(sel,slot.id)} style={{width:'100%',padding:'6px',fontSize:12,border:'1px dashed var(--border)',borderRadius:6,background:'none',color:'var(--muted)',cursor:'pointer'}}>
+          + Ajouter un aliment
+        </button>
+      </div>
+    </div>;
+  }
 
   function Nutrition(){
     const dtC=sSes?{bg:'var(--si)',tc:'var(--blue)',b:'var(--sb)'}:{bg:'var(--surface2)',tc:'var(--muted)',b:'var(--border)'};
     return <div>
-      {/* Résumé */}
       <div style={{...card,padding:'10px 12px',marginBottom:10}}>
         <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
           <div style={{fontSize:14,fontWeight:600,flex:1,textTransform:'capitalize'}}>{new Date(sel+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
-          <span style={{fontSize:10,padding:'2px 8px',borderRadius:20,background:dtC.bg,color:dtC.tc,border:'1px solid '+dtC.b,...mono}}>{sSes?'⚡ SÉANCE':'💤 REPOS'}</span>
+          <span style={{fontSize:10,padding:'2px 8px',borderRadius:20,background:dtC.bg,color:dtC.tc,border:'1px solid '+dtC.b,...mono}}>{sSes?'SEANCE':'REPOS'}</span>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:8}}>
-          {[{v:sT.kcal,l:'Consommé',c:sT.kcal>sAdj?'var(--red)':'var(--accent)'},{v:sAdj,l:sB>0?'Obj.ajusté':'Objectif',c:'var(--orange)'},{v:Math.abs(sRem),l:sRem>=0?'Restantes':'Surplus',c:sRem<0?'var(--red)':'var(--text)'}].map((k,i)=>(
+          {[{v:sT.kcal,l:'Consomme',c:sT.kcal>sAdj?'var(--red)':'var(--accent)'},{v:sAdj,l:sB>0?'Obj.ajuste':'Objectif',c:'var(--orange)'},{v:Math.abs(sRem),l:sRem>=0?'Restantes':'Surplus',c:sRem<0?'var(--red)':'var(--text)'}].map((k,i)=>(
             <div key={i} style={{textAlign:'center',background:'var(--surface2)',borderRadius:8,padding:'7px 4px'}}>
               <div style={{fontSize:17,fontWeight:700,...mono,color:k.c}}>{k.v}</div>
               <div style={{fontSize:9,color:'var(--muted)'}}>{k.l}</div>
@@ -370,12 +374,13 @@ function App(){
           ))}
         </div>
       </div>
+
       {/* Séance + calories brûlées */}
       <div style={{...card,padding:'10px 12px',marginBottom:10}}>
         {sSes&&<div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:7,padding:'7px 10px',marginBottom:8,display:'flex',gap:8,alignItems:'center'}}>
           <span style={{fontSize:16}}>🏋️</span>
           <div style={{flex:1}}>
-            <div style={{fontSize:11,fontWeight:600,marginBottom:2}}>{sSes.title}</div>
+            <div style={{fontSize:12,fontWeight:600,marginBottom:2}}>{sSes.title}</div>
             <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
               {[sSes.type,sSes.duree+'min',sSes.calories>0?'🔥'+sSes.calories+'kcal':null].filter(Boolean).map((t,i)=>(
                 <span key={i} style={{fontSize:9,padding:'1px 5px',borderRadius:4,background:'var(--surface2)',color:'var(--muted)',border:'1px solid var(--border)',...mono}}>{t}</span>
@@ -384,63 +389,36 @@ function App(){
           </div>
         </div>}
         <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--surface2)',borderRadius:7,padding:'7px 10px'}}>
-          <span style={{fontSize:14}}>🔥</span>
-          <span style={{fontSize:11,color:'var(--muted)',flex:1}}>Calories brûlées</span>
+          <span style={{fontSize:16}}>🔥</span>
+          <span style={{fontSize:12,color:'var(--muted)',flex:1}}>Calories brulees</span>
           <input type="number" min={0} step={10} value={days[sel]?.cal||''} placeholder="0"
-            onChange={e=>setCal2(sel,+e.target.value||0)}
-            style={{width:65,fontSize:13,padding:'4px 6px',textAlign:'center',...mono}}/>
-          <span style={{fontSize:10,color:'var(--muted)',...mono}}>kcal</span>
+            onChange={e=>setCalB(sel,+e.target.value||0)}
+            style={{width:90,padding:'5px 8px',textAlign:'center',...mono}}/>
+          <span style={{fontSize:11,color:'var(--muted)',...mono}}>kcal</span>
         </div>
       </div>
-      {/* Repas */}
+
+      {/* Repas — 2 colonnes */}
       <div className="mg">
-        {MEALS.map(slot=>{
-          const rows=gm(sel)[slot.id]||[];
-          const mk=Math.round(rows.reduce((s,r)=>{const f=afw[r.food];if(!f||!r.qty)return s;const g=gew(f,r.qty);return s+(g>0?f.kcal*g/100:0);},0));
-          return <div key={slot.id} style={{...card,overflow:'hidden'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',borderBottom:'1px solid var(--border)',background:'var(--surface2)'}}>
-              <span style={{fontSize:12,fontWeight:600}}>{slot.ic} {slot.l}</span>
-              <span style={{fontSize:11,color:'var(--accent)',fontWeight:600,...mono}}>{mk>0?mk+' kcal':'—'}</span>
-            </div>
-            {rows.map((row,idx)=>{
-              const f=afw[row.food];
-              const rk=f&&row.qty>0?Math.round(f.kcal*gew(f,row.qty)/100):0;
-              const ul=f?(f.ul||(f.unit==='unit'?'u':f.unit==='ml'?'ml':'g')):'g';
-              return <div key={idx} style={{display:'grid',gridTemplateColumns:'1fr 68px 32px 20px',gap:2,alignItems:'center',padding:'3px 7px',borderBottom:'1px solid var(--border)'}}>
-                <select value={row.food} onChange={e=>updRow(sel,slot.id,idx,'food',e.target.value)} style={{fontSize:10,padding:'2px 3px',borderRadius:4,maxWidth:'100%'}}>
-                  <option value="">—</option>
-                  <optgroup label="Recettes">{Object.keys(afw).filter(x=>x.startsWith('[R]')).sort().map(x=><option key={x} value={x}>{x.replace('[R] ','')}</option>)}</optgroup>
-                  <optgroup label="Aliments">{Object.keys(afw).filter(x=>!x.startsWith('[R]')).sort().map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
-                </select>
-                <div style={{display:'flex',alignItems:'center',gap:2}}>
-                  <input type="number" min={0} step={f?.unit==='unit'?1:5} value={row.qty||''} placeholder="0" onChange={e=>updRow(sel,slot.id,idx,'qty',e.target.value)} style={{width:36,fontSize:10,padding:'2px 2px',textAlign:'center',...mono}}/>
-                  <span style={{fontSize:8,color:'var(--muted)',...mono}}>{ul}</span>
-                </div>
-                <span style={{fontSize:10,color:'var(--accent)',fontWeight:600,...mono,textAlign:'right'}}>{rk>0?rk:'—'}</span>
-                <button onClick={()=>delRow(sel,slot.id,idx)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--muted)',fontSize:12}}>✕</button>
-              </div>;
-            })}
-            <div style={{padding:'3px 7px'}}>
-              <button onClick={()=>addRow(sel,slot.id)} style={{width:'100%',padding:'3px',fontSize:10,border:'1px dashed var(--border)',borderRadius:4,background:'none',color:'var(--muted)',cursor:'pointer'}}>+ Ajouter</button>
-            </div>
-          </div>;
-        })}
+        {MEALS.map(slot=><MealCard key={slot.id} slot={slot}/>)}
       </div>
+
+      {/* Aliment custom */}
       <div style={{marginTop:10}}>
         {!addFood
-          ?<button onClick={()=>setAddFood(true)} style={{...btnB,width:'100%',padding:'8px',textAlign:'center',fontSize:11}}>⊕ Aliment personnalisé</button>
+          ?<button onClick={()=>setAF(true)} style={{...btnB,width:'100%',padding:'10px',textAlign:'center',fontSize:12}}>+ Aliment personnalise</button>
           :<div style={{...card,padding:12}}>
-            <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>Nouvel aliment</div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5,marginBottom:8}}>
-              {[{k:'name',ph:'Nom',full:true},{k:'kcal',ph:'Kcal/100g'},{k:'p',ph:'Protéines'},{k:'l',ph:'Lipides'},{k:'g',ph:'Glucides'}].map(x=>(
+            <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Nouvel aliment</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:8}}>
+              {[{k:'name',ph:'Nom',full:true},{k:'kcal',ph:'Kcal/100g'},{k:'p',ph:'Proteines g'},{k:'l',ph:'Lipides g'},{k:'g',ph:'Glucides g'}].map(x=>(
                 <div key={x.k} style={{gridColumn:x.full?'1/-1':undefined}}>
-                  <input type={x.k==='name'?'text':'number'} placeholder={x.ph} value={nf[x.k]} onChange={e=>setNf(p=>({...p,[x.k]:e.target.value}))} style={{width:'100%',fontSize:11,padding:'5px 7px'}}/>
+                  <input type={x.k==='name'?'text':'number'} placeholder={x.ph} value={nf[x.k]} onChange={e=>setNf(p=>({...p,[x.k]:e.target.value}))} style={{width:'100%',padding:'7px 9px'}}/>
                 </div>
               ))}
             </div>
             <div style={{display:'flex',gap:6}}>
-              <button onClick={saveCf} style={{...btnG,flex:1,padding:'6px',textAlign:'center'}}>Sauvegarder</button>
-              <button onClick={()=>setAddFood(false)} style={{...btnB,padding:'6px 12px'}}>Annuler</button>
+              <button onClick={saveCf} style={{...btnG,flex:1,padding:'8px',textAlign:'center'}}>Sauvegarder</button>
+              <button onClick={()=>setAF(false)} style={{...btnB,padding:'8px 14px'}}>Annuler</button>
             </div>
           </div>
         }
@@ -449,76 +427,73 @@ function App(){
   }
 
   function Training(){
-    const TYPES=['Cardio','Force','HIIT','Hyrox Coach','Mobilité','Autre'];
-    const STATUTS=['À faire','Fait','Modifié','Annulé'];
     return <div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-        <div style={{fontSize:15,fontWeight:600}}>Séances <span style={{fontSize:11,color:'var(--muted)',fontWeight:400}}>({Object.keys(sess).length})</span></div>
-        <button onClick={()=>setAddSess(true)} style={{...btnG,padding:'5px 12px',fontSize:11}}>+ Ajouter</button>
+        <div style={{fontSize:15,fontWeight:600}}>Seances <span style={{fontSize:11,color:'var(--muted)',fontWeight:400}}>({Object.keys(sess).length})</span></div>
+        <button onClick={()=>setAS(true)} style={{...btnG,padding:'6px 14px'}}>+ Ajouter</button>
       </div>
       {addSess&&<div style={{...card,padding:12,marginBottom:12}}>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:8}}>
-          <div><input type="date" value={ns.date} onChange={e=>setNs(s=>({...s,date:e.target.value}))} style={{width:'100%',fontSize:11,padding:'5px 7px'}}/></div>
-          <div><select value={ns.type} onChange={e=>setNs(s=>({...s,type:e.target.value}))} style={{width:'100%',fontSize:11,padding:'5px 7px'}}>{TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
-          <div style={{gridColumn:'1/-1'}}><input value={ns.title} onChange={e=>setNs(s=>({...s,title:e.target.value}))} placeholder="Titre..." style={{width:'100%',fontSize:11,padding:'5px 7px'}}/></div>
-          <div><input type="number" value={ns.duree} onChange={e=>setNs(s=>({...s,duree:e.target.value}))} placeholder="Durée (min)" style={{width:'100%',fontSize:11,padding:'5px 7px',...mono}}/></div>
-          <div><select value={ns.statut} onChange={e=>setNs(s=>({...s,statut:e.target.value}))} style={{width:'100%',fontSize:11,padding:'5px 7px'}}>{STATUTS.map(t=><option key={t}>{t}</option>)}</select></div>
-          <div style={{gridColumn:'1/-1',display:'flex',alignItems:'center',gap:7,background:'var(--surface2)',borderColor:'var(--border)',borderRadius:6,padding:'5px 8px'}}>
-            <span>🔥</span><span style={{fontSize:10,color:'var(--muted)',flex:1}}>Calories brûlées</span>
-            <input type="number" value={ns.calories||''} placeholder="0" onChange={e=>setNs(s=>({...s,calories:e.target.value}))} style={{width:65,fontSize:11,padding:'3px 5px',textAlign:'center',...mono}}/>
-            <span style={{fontSize:9,color:'var(--muted)',...mono}}>kcal</span>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+          <div><input type="date" value={ns.date} onChange={e=>setNs(s=>({...s,date:e.target.value}))} style={{width:'100%',padding:'7px 9px'}}/></div>
+          <div><select value={ns.type} onChange={e=>setNs(s=>({...s,type:e.target.value}))} style={{width:'100%',padding:'7px 9px'}}>{TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
+          <div style={{gridColumn:'1/-1'}}><input value={ns.title} onChange={e=>setNs(s=>({...s,title:e.target.value}))} placeholder="Titre de la seance..." style={{width:'100%',padding:'7px 9px'}}/></div>
+          <div><input type="number" value={ns.duree} onChange={e=>setNs(s=>({...s,duree:e.target.value}))} placeholder="Duree (min)" style={{width:'100%',padding:'7px 9px',...mono}}/></div>
+          <div><select value={ns.statut} onChange={e=>setNs(s=>({...s,statut:e.target.value}))} style={{width:'100%',padding:'7px 9px'}}>{STATUTS.map(t=><option key={t}>{t}</option>)}</select></div>
+          <div style={{gridColumn:'1/-1',display:'flex',alignItems:'center',gap:8,background:'var(--surface2)',borderRadius:7,padding:'7px 10px'}}>
+            <span>🔥</span><span style={{fontSize:12,color:'var(--muted)',flex:1}}>Calories brulees</span>
+            <input type="number" value={ns.calories||''} placeholder="0" onChange={e=>setNs(s=>({...s,calories:e.target.value}))} style={{width:90,padding:'5px 8px',textAlign:'center',...mono}}/>
+            <span style={{fontSize:11,color:'var(--muted)',...mono}}>kcal</span>
           </div>
         </div>
         <div style={{display:'flex',gap:6}}>
-          <button onClick={saveNewSess} style={{...btnG,flex:1,padding:'7px',textAlign:'center',fontSize:11}}>💾 Sauvegarder</button>
-          <button onClick={()=>setAddSess(false)} style={{...btnB,padding:'7px 12px',fontSize:11}}>Annuler</button>
+          <button onClick={saveNewSess} style={{...btnG,flex:1,padding:'8px',textAlign:'center'}}>Sauvegarder</button>
+          <button onClick={()=>setAS(false)} style={{...btnB,padding:'8px 14px'}}>Annuler</button>
         </div>
       </div>}
-      <div style={{display:'flex',flexDirection:'column',gap:7}}>
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
         {Object.entries(sess).sort((a,b)=>b[0].localeCompare(a[0])).map(([ds,s])=>{
-          const done=s.statut==='Fait',mod=s.statut==='Modifié',ann=s.statut==='Annulé';
+          const done=s.statut==='Fait',mod=s.statut==='Modifie',ann=s.statut==='Annule';
           const isEd=editSess?.date===ds;
           return <div key={ds} style={{...card,padding:'10px 12px',borderColor:ds===sel?'var(--accent)':'var(--border)'}}>
             {isEd
               ?<div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5,marginBottom:7}}>
-                  <div style={{gridColumn:'1/-1'}}><input value={editSess.title} onChange={e=>setEditSess(x=>({...x,title:e.target.value}))} style={{width:'100%',fontSize:11,padding:'4px 6px'}}/></div>
-                  <select value={editSess.type} onChange={e=>setEditSess(x=>({...x,type:e.target.value}))} style={{fontSize:11,padding:'4px 5px'}}>{TYPES.map(t=><option key={t}>{t}</option>)}</select>
-                  <input type="number" value={editSess.duree} onChange={e=>setEditSess(x=>({...x,duree:e.target.value}))} style={{fontSize:11,padding:'4px 5px',...mono}}/>
-                  <select value={editSess.statut} onChange={e=>setEditSess(x=>({...x,statut:e.target.value}))} style={{fontSize:11,padding:'4px 5px'}}>{STATUTS.map(t=><option key={t}>{t}</option>)}</select>
-                  <div style={{display:'flex',alignItems:'center',gap:4}}><span>🔥</span><input type="number" value={editSess.calories||''} placeholder="kcal" onChange={e=>setEditSess(x=>({...x,calories:e.target.value}))} style={{width:'100%',fontSize:11,padding:'4px 5px',...mono}}/></div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:8}}>
+                  <div style={{gridColumn:'1/-1'}}><input value={editSess.title} onChange={e=>setES(x=>({...x,title:e.target.value}))} style={{width:'100%',padding:'6px 8px'}}/></div>
+                  <select value={editSess.type} onChange={e=>setES(x=>({...x,type:e.target.value}))} style={{padding:'6px 8px'}}>{TYPES.map(t=><option key={t}>{t}</option>)}</select>
+                  <input type="number" value={editSess.duree} onChange={e=>setES(x=>({...x,duree:e.target.value}))} style={{padding:'6px 8px',...mono}}/>
+                  <select value={editSess.statut} onChange={e=>setES(x=>({...x,statut:e.target.value}))} style={{padding:'6px 8px'}}>{STATUTS.map(t=><option key={t}>{t}</option>)}</select>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}><span>🔥</span><input type="number" value={editSess.calories||''} placeholder="kcal" onChange={e=>setES(x=>({...x,calories:e.target.value}))} style={{width:'100%',padding:'6px 8px',...mono}}/></div>
                 </div>
-                <div style={{display:'flex',gap:5}}>
-                  <button onClick={()=>updSess(ds)} style={{...btnG,padding:'5px 12px',fontSize:11}}>✓ OK</button>
-                  <button onClick={()=>setEditSess(null)} style={{...btnB,padding:'5px 10px',fontSize:11}}>Annuler</button>
-                  <button onClick={()=>delSess(ds)} style={{...btnB,marginLeft:'auto',padding:'5px 10px',fontSize:11,color:'var(--red)',borderColor:'rgba(255,77,77,.3)'}}>🗑</button>
+                <div style={{display:'flex',gap:6}}>
+                  <button onClick={()=>updSess(ds)} style={{...btnG,padding:'6px 14px'}}>OK</button>
+                  <button onClick={()=>setES(null)} style={{...btnB,padding:'6px 12px'}}>Annuler</button>
+                  <button onClick={()=>delSess(ds)} style={{...btnB,marginLeft:'auto',padding:'6px 10px',color:'var(--red)',borderColor:'rgba(255,77,77,.3)'}}>🗑</button>
                 </div>
               </div>
               :<div style={{display:'flex',gap:10,alignItems:'center'}} onClick={()=>setSel(ds)}>
-                <div style={{width:34,textAlign:'center',flexShrink:0}}>
+                <div style={{width:36,textAlign:'center',flexShrink:0}}>
                   <div style={{fontSize:9,color:'var(--muted)',...mono}}>{new Date(ds+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short'})}</div>
-                  <div style={{fontSize:16,fontWeight:700}}>{new Date(ds+'T12:00:00').getDate()}</div>
-                  <div style={{fontSize:8,color:'var(--muted)',...mono}}>{new Date(ds+'T12:00:00').toLocaleDateString('fr-FR',{month:'short'})}</div>
+                  <div style={{fontSize:17,fontWeight:700}}>{new Date(ds+'T12:00:00').getDate()}</div>
+                  <div style={{fontSize:9,color:'var(--muted)',...mono}}>{new Date(ds+'T12:00:00').toLocaleDateString('fr-FR',{month:'short'})}</div>
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:600,marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.title}</div>
+                  <div style={{fontSize:13,fontWeight:600,marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.title}</div>
                   <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
                     {[s.type,s.duree+'min',s.calories>0?'🔥'+s.calories+'kcal':null].filter(Boolean).map((t,i)=>(
-                      <span key={i} style={{fontSize:9,padding:'1px 5px',borderRadius:4,background:'var(--surface2)',color:t.includes('kcal')?'var(--orange)':'var(--muted)',border:'1px solid var(--border)',...mono}}>{t}</span>
+                      <span key={i} style={{fontSize:10,padding:'1px 6px',borderRadius:4,background:'var(--surface2)',color:t.includes('kcal')?'var(--orange)':'var(--muted)',border:'1px solid var(--border)',...mono}}>{t}</span>
                     ))}
                   </div>
                 </div>
                 <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:5,flexShrink:0}}>
-                  <span style={{fontSize:9,padding:'2px 6px',borderRadius:20,...mono,background:done?'var(--gi)':mod?'var(--oi)':ann?'rgba(255,77,77,.08)':'var(--surface2)',color:done?'var(--accent)':mod?'var(--orange)':ann?'var(--red)':'var(--muted)',border:'1px solid '+(done?'var(--gb)':mod?'var(--ob)':ann?'rgba(255,77,77,.25)':'var(--border)')}}>{s.statut}</span>
-                  <button onClick={e=>{e.stopPropagation();setEditSess({...s,date:ds});}} style={{...btnB,padding:'2px 6px',fontSize:10}}>✏️</button>
+                  <span style={{fontSize:9,padding:'2px 7px',borderRadius:20,...mono,background:done?'var(--gi)':mod?'var(--oi)':ann?'rgba(255,77,77,.08)':'var(--surface2)',color:done?'var(--accent)':mod?'var(--orange)':ann?'var(--red)':'var(--muted)',border:'1px solid '+(done?'var(--gb)':mod?'var(--ob)':ann?'rgba(255,77,77,.25)':'var(--border)')}}>{s.statut}</span>
+                  <button onClick={e=>{e.stopPropagation();setES({...s,date:ds});}} style={{...btnB,padding:'3px 8px',fontSize:11}}>✏️</button>
                 </div>
               </div>
             }
           </div>;
         })}
         {Object.keys(sess).length===0&&<div style={{textAlign:'center',padding:'40px',color:'var(--muted)'}}>
-          <div style={{fontSize:32,marginBottom:8}}>🏃</div>
-          <div style={{fontSize:13}}>Aucune séance — ajoutes-en une</div>
+          <div style={{fontSize:32,marginBottom:8}}>🏃</div><div style={{fontSize:13}}>Aucune seance</div>
         </div>}
       </div>
     </div>;
@@ -528,12 +503,7 @@ function App(){
     return <div>
       <div style={{fontSize:15,fontWeight:600,marginBottom:12}}>Stats — Semaine</div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
-        {[
-          {l:'Kcal moy./jour',v:Math.round(wk.filter(w=>w.kcal>0).reduce((s,w)=>s+w.kcal,0)/Math.max(1,wk.filter(w=>w.kcal>0).length)),c:'var(--accent)'},
-          {l:'Jours loggés',v:wk.filter(w=>w.kcal>0).length+'/7'},
-          {l:'Séances semaine',v:wk.filter(w=>w.isTr).length},
-          {l:'Obj. moyen',v:Math.round(wk.reduce((s,w)=>s+w.target,0)/7),c:'var(--orange)'},
-        ].map((c,i)=>(
+        {[{l:'Kcal moy./jour',v:Math.round(wk.filter(w=>w.kcal>0).reduce((s,w)=>s+w.kcal,0)/Math.max(1,wk.filter(w=>w.kcal>0).length)),c:'var(--accent)'},{l:'Jours logges',v:wk.filter(w=>w.kcal>0).length+'/7'},{l:'Seances',v:wk.filter(w=>w.isTr).length},{l:'Obj. moyen',v:Math.round(wk.reduce((s,w)=>s+w.target,0)/7),c:'var(--orange)'}].map((c,i)=>(
           <div key={i} style={{...card,padding:'10px 12px'}}>
             <div style={{fontSize:10,color:'var(--muted)',marginBottom:3}}>{c.l}</div>
             <div style={{fontSize:22,fontWeight:700,...mono,color:c.c||'var(--text)'}}>{c.v}</div>
@@ -543,10 +513,7 @@ function App(){
       <div style={{...card,padding:12,marginBottom:10}}>
         <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Calories / jour</div>
         <div style={{display:'flex',gap:4,alignItems:'flex-end',height:110}}>
-          {wk.map((w,i)=>{
-            const mx=Math.max(...wk.map(x=>Math.max(x.kcal,x.target)),2200);
-            const h=w.kcal>0?Math.round((w.kcal/mx)*90):0,th=Math.round((w.target/mx)*90);
-            const isSel=w.ds===sel;
+          {wk.map((w,i)=>{const mx=Math.max(...wk.map(x=>Math.max(x.kcal,x.target)),2200);const h=w.kcal>0?Math.round((w.kcal/mx)*90):0,th=Math.round((w.target/mx)*90);const isSel=w.ds===sel;
             return <div key={i} onClick={()=>setSel(w.ds)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2,cursor:'pointer'}}>
               <div style={{fontSize:8,color:'var(--muted)',...mono,height:12}}>{w.kcal>0?w.kcal:''}</div>
               <div style={{width:'100%',position:'relative',height:90,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
@@ -560,12 +527,11 @@ function App(){
         </div>
       </div>
       <div style={{...card,padding:12}}>
-        <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Macros moy. (jours loggés)</div>
-        {[{l:'Protéines',k:'p',t:MP.p,c:'var(--blue)'},{l:'Lipides',k:'l',t:MP.l,c:'var(--orange)'}].map(m=>{
-          const lg=wk.filter(w=>w.kcal>0);
-          const avg=lg.length?Math.round(lg.reduce((s,w)=>s+gt(w.ds)[m.k],0)/lg.length):0;
+        <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Macros moy.</div>
+        {[{l:'Proteines',k:'p',t:MP.p,c:'var(--blue)'},{l:'Lipides',k:'l',t:MP.l,c:'var(--orange)'}].map(m=>{
+          const lg=wk.filter(w=>w.kcal>0);const avg=lg.length?Math.round(lg.reduce((s,w)=>s+gt(w.ds)[m.k],0)/lg.length):0;
           return <div key={m.k} style={{marginBottom:10}}>
-            <div style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:3}}>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:3}}>
               <span style={{color:m.c,fontWeight:600}}>{m.l}</span>
               <span style={{color:'var(--muted)',...mono}}><strong style={{color:'var(--text)'}}>{avg}g</strong> / {m.t}g</span>
             </div>
@@ -580,60 +546,50 @@ function App(){
     return <div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
         <div style={{fontSize:15,fontWeight:600}}>Recettes <span style={{fontSize:11,color:'var(--muted)',fontWeight:400}}>({Object.keys(recs).length})</span></div>
-        <div style={{display:'flex',gap:5}}>
-          {[{t:'list',l:'Liste'},{t:'create',l:'+ Nouvelle'}].map(b=>(
-            <button key={b.t} onClick={()=>setRtab(b.t)} style={{...btnB,...(rtab===b.t?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--gi)'}:{})}}>{b.l}</button>
-          ))}
-        </div>
+        <div style={{display:'flex',gap:5}}>{[{t:'list',l:'Liste'},{t:'create',l:'+ Nouvelle'}].map(b=>(
+          <button key={b.t} onClick={()=>setRtab(b.t)} style={{...btnB,...(rtab===b.t?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--gi)'}:{})}}>{b.l}</button>
+        ))}</div>
       </div>
       {rtab==='list'&&<div>
-        {Object.keys(recs).length===0
-          ?<div style={{textAlign:'center',padding:'40px',color:'var(--muted)'}}>
-            <div style={{fontSize:32,marginBottom:8}}>📖</div><div style={{fontSize:13}}>Aucune recette</div>
-          </div>
-          :<div style={{display:'flex',flexDirection:'column',gap:7}}>
-            {Object.entries(recs).map(([name,r])=>{
-              const pp=r.portions>1?r.portions+'p · '+Math.round(r.totals.kcal/r.portions)+'kcal/p':r.totals.kcal+'kcal';
-              return <div key={name} style={{...card,padding:'10px 12px',display:'flex',alignItems:'center',gap:10}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:600,marginBottom:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}{r.desc&&<span style={{fontWeight:400,color:'var(--muted)',fontSize:10}}> — {r.desc}</span>}</div>
-                  <div style={{display:'flex',gap:6,fontSize:10,...mono,color:'var(--muted)',flexWrap:'wrap'}}>
-                    <span>{pp}</span>
-                    <span style={{color:'var(--blue)'}}>P:{Math.round(r.totals.p/r.portions)}g</span>
-                    <span style={{color:'var(--orange)'}}>L:{Math.round(r.totals.l/r.portions)}g</span>
-                    <span style={{color:'var(--accent)'}}>G:{Math.round(r.totals.g/r.portions)}g</span>
-                  </div>
+        {Object.keys(recs).length===0?<div style={{textAlign:'center',padding:'40px',color:'var(--muted)'}}><div style={{fontSize:32,marginBottom:8}}>📖</div><div>Aucune recette</div></div>
+        :<div style={{display:'flex',flexDirection:'column',gap:8}}>
+          {Object.entries(recs).map(([name,r])=>{const pp=r.portions>1?r.portions+'p · '+Math.round(r.totals.kcal/r.portions)+'kcal/p':r.totals.kcal+'kcal';
+            return <div key={name} style={{...card,padding:'10px 12px',display:'flex',alignItems:'center',gap:10}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,marginBottom:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}{r.desc&&<span style={{fontWeight:400,color:'var(--muted)',fontSize:11}}> — {r.desc}</span>}</div>
+                <div style={{display:'flex',gap:6,fontSize:11,...mono,color:'var(--muted)',flexWrap:'wrap'}}>
+                  <span>{pp}</span><span style={{color:'var(--blue)'}}>P:{Math.round(r.totals.p/r.portions)}g</span><span style={{color:'var(--orange)'}}>L:{Math.round(r.totals.l/r.portions)}g</span><span style={{color:'var(--accent)'}}>G:{Math.round(r.totals.g/r.portions)}g</span>
                 </div>
-                <button onClick={()=>delRec(name)} style={{...btnB,padding:'4px 8px'}}>🗑</button>
-              </div>;
-            })}
-          </div>
-        }
+              </div>
+              <button onClick={()=>delRec(name)} style={{...btnB,padding:'5px 10px'}}>🗑</button>
+            </div>;
+          })}
+        </div>}
       </div>}
       {rtab==='create'&&<div style={{...card,padding:12}}>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:10}}>
-          <div style={{gridColumn:'1/-1'}}><label style={{fontSize:9,color:'var(--muted)',...mono,display:'block',marginBottom:2}}>NOM</label><input value={nr.name} onChange={e=>setNr(r=>({...r,name:e.target.value}))} placeholder="Ex: Bol poulet-riz..." style={{width:'100%',fontSize:12,padding:'5px 7px'}}/></div>
-          <div><label style={{fontSize:9,color:'var(--muted)',...mono,display:'block',marginBottom:2}}>PORTIONS</label><input type="number" min={1} value={nr.portions} onChange={e=>setNr(r=>({...r,portions:+e.target.value||1}))} style={{width:'100%',fontSize:12,padding:'5px 7px'}}/></div>
-          <div><label style={{fontSize:9,color:'var(--muted)',...mono,display:'block',marginBottom:2}}>DESC.</label><input value={nr.desc} onChange={e=>setNr(r=>({...r,desc:e.target.value}))} placeholder="Optionnel" style={{width:'100%',fontSize:12,padding:'5px 7px'}}/></div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
+          <div style={{gridColumn:'1/-1'}}><label style={{fontSize:10,color:'var(--muted)',...mono,display:'block',marginBottom:3}}>NOM</label><input value={nr.name} onChange={e=>setNr(r=>({...r,name:e.target.value}))} placeholder="Ex: Bol poulet-riz..." style={{width:'100%',padding:'7px 9px'}}/></div>
+          <div><label style={{fontSize:10,color:'var(--muted)',...mono,display:'block',marginBottom:3}}>PORTIONS</label><input type="number" min={1} value={nr.portions} onChange={e=>setNr(r=>({...r,portions:+e.target.value||1}))} style={{width:'100%',padding:'7px 9px'}}/></div>
+          <div><label style={{fontSize:10,color:'var(--muted)',...mono,display:'block',marginBottom:3}}>DESC.</label><input value={nr.desc} onChange={e=>setNr(r=>({...r,desc:e.target.value}))} placeholder="Optionnel" style={{width:'100%',padding:'7px 9px'}}/></div>
         </div>
-        <div style={{fontSize:9,color:'var(--muted)',...mono,textTransform:'uppercase',marginBottom:5}}>Ingrédients</div>
-        {nr.ings.map((ing,idx)=>{
-          const f=af[ing.food];const rk=f&&ing.qty>0?Math.round(f.kcal*gew(f,ing.qty)/100):0;const u=f?(f.unit==='unit'?'u':f.unit==='ml'?'ml':'g'):'g';
-          return <div key={idx} style={{display:'grid',gridTemplateColumns:'1fr 75px 42px 20px',gap:3,alignItems:'center',marginBottom:4}}>
-            <select value={ing.food} onChange={e=>setNr(r=>{const i=[...r.ings];i[idx]={food:e.target.value,qty:0};return{...r,ings:i};})} style={{fontSize:10,padding:'3px 4px',borderRadius:5,maxWidth:'100%'}}><option value="">—</option>{Object.keys(af).sort().map(x=><option key={x} value={x}>{x}</option>)}</select>
-            <div style={{display:'flex',alignItems:'center',gap:2}}><input type="number" min={0} step={f?.unit==='unit'?1:5} value={ing.qty||''} placeholder="0" onChange={e=>setNr(r=>{const i=[...r.ings];i[idx]={...i[idx],qty:parseFloat(e.target.value)||0};return{...r,ings:i};})} style={{width:40,fontSize:10,padding:'3px 2px',textAlign:'center',...mono}}/><span style={{fontSize:8,color:'var(--muted)',...mono}}>{u}</span></div>
-            <span style={{fontSize:10,color:'var(--accent)',fontWeight:600,...mono,textAlign:'right'}}>{rk>0?rk:'—'}</span>
-            <button onClick={()=>setNr(r=>({...r,ings:r.ings.filter((_,i)=>i!==idx)}))} style={{background:'none',border:'none',cursor:'pointer',color:'var(--muted)',fontSize:12}}>✕</button>
+        <div style={{fontSize:10,color:'var(--muted)',...mono,textTransform:'uppercase',marginBottom:6}}>Ingredients</div>
+        {nr.ings.map((ing,idx)=>{const f=af[ing.food];const rk=f&&ing.qty>0?Math.round(f.kcal*gew(f,ing.qty)/100):0;const u=f?(f.unit==='unit'?'u':f.unit==='ml'?'ml':'g'):'g';
+          return <div key={idx} style={{display:'flex',gap:6,alignItems:'center',marginBottom:6}}>
+            <select value={ing.food} onChange={e=>setNr(r=>{const i=[...r.ings];i[idx]={food:e.target.value,qty:0};return{...r,ings:i};})} style={{flex:1,padding:'5px 6px'}}><option value="">—</option>{Object.keys(af).sort().map(x=><option key={x} value={x}>{x}</option>)}</select>
+            <input type="number" min={0} step={f?.unit==='unit'?1:5} value={ing.qty||''} placeholder="Qte" onChange={e=>setNr(r=>{const i=[...r.ings];i[idx]={...i[idx],qty:parseFloat(e.target.value)||0};return{...r,ings:i};})} style={{width:70,padding:'5px 6px',textAlign:'center',...mono}}/>
+            <span style={{fontSize:10,color:'var(--muted)',...mono,width:20}}>{u}</span>
+            <span style={{fontSize:11,color:'var(--accent)',fontWeight:600,...mono,width:36,textAlign:'right'}}>{rk>0?rk:'—'}</span>
+            <button onClick={()=>setNr(r=>({...r,ings:r.ings.filter((_,i)=>i!==idx)}))} style={{background:'none',border:'none',cursor:'pointer',color:'var(--muted)',fontSize:14}}>✕</button>
           </div>;
         })}
-        <button onClick={()=>setNr(r=>({...r,ings:[...r.ings,{food:'',qty:0}]}))} style={{width:'100%',padding:'4px',fontSize:10,border:'1px dashed var(--border)',borderRadius:5,background:'none',color:'var(--muted)',cursor:'pointer',marginBottom:8}}>+ Ingrédient</button>
-        {(()=>{const t=rTotals(nr.ings.filter(i=>i.food&&i.qty>0));const p=nr.portions||1;return t.kcal>0&&<div style={{display:'flex',gap:8,padding:'6px 8px',background:'var(--surface2)',borderRadius:7,marginBottom:8,flexWrap:'wrap',fontSize:10,...mono}}>
+        <button onClick={()=>setNr(r=>({...r,ings:[...r.ings,{food:'',qty:0}]}))} style={{width:'100%',padding:'6px',fontSize:11,border:'1px dashed var(--border)',borderRadius:6,background:'none',color:'var(--muted)',cursor:'pointer',marginBottom:10}}>+ Ingredient</button>
+        {(()=>{const t=rTotals(nr.ings.filter(i=>i.food&&i.qty>0));const p=nr.portions||1;return t.kcal>0&&<div style={{display:'flex',gap:8,padding:'7px 9px',background:'var(--surface2)',borderRadius:7,marginBottom:10,flexWrap:'wrap',fontSize:11,...mono}}>
           <span>Total:{t.kcal}kcal</span>{p>1&&<span style={{color:'var(--blue)'}}>→{Math.round(t.kcal/p)}/p</span>}
           <span style={{color:'var(--blue)'}}>P:{Math.round(t.p/p)}g</span><span style={{color:'var(--orange)'}}>L:{Math.round(t.l/p)}g</span><span style={{color:'var(--accent)'}}>G:{Math.round(t.g/p)}g</span>
         </div>;})()}
         <div style={{display:'flex',gap:6}}>
-          <button onClick={saveRec} style={{...btnG,flex:1,padding:'7px',textAlign:'center',fontSize:11}}>💾 Sauvegarder</button>
-          <button onClick={()=>{setRtab('list');setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});}} style={{...btnB,padding:'7px 12px',fontSize:11}}>Annuler</button>
+          <button onClick={saveRec} style={{...btnG,flex:1,padding:'8px',textAlign:'center'}}>Sauvegarder</button>
+          <button onClick={()=>{setRtab('list');setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});}} style={{...btnB,padding:'8px 14px'}}>Annuler</button>
         </div>
       </div>}
     </div>;
@@ -641,68 +597,61 @@ function App(){
 
   function Coach(){
     return <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 200px)'}}>
-      <div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:8,padding:'6px 10px',marginBottom:10,fontSize:10,...mono,color:'var(--blue)'}}>
-        {selLabel} · {sSes?'Séance':'Repos'} · {sT.kcal}/{sTgt}kcal{sB>0?' +'+sB+'🔥':''} · P:{sT.p}g
+      <div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:8,padding:'7px 11px',marginBottom:10,fontSize:11,...mono,color:'var(--blue)'}}>
+        {selLabel} · {sSes?'Seance':'Repos'} · {sT.kcal}/{sTgt}kcal{sB>0?' +'+sB+'🔥':''} · P:{sT.p}g
       </div>
       <div ref={chatRef} style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:8,paddingBottom:8}}>
         {aiMsgs.length===0&&<div style={{textAlign:'center',padding:'20px',color:'var(--muted)'}}>
           <div style={{fontSize:28,marginBottom:6}}>🤖</div>
-          <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Coach IA prêt</div>
-          <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:20}}>
-            {['Que manger avant ma séance ?','Analyse mes macros','Conseils récupération ?'].map(q=>(
-              <button key={q} onClick={()=>setAiIn(q)} style={{...btnB,borderColor:'var(--sb)',color:'var(--blue)',padding:'7px 10px',textAlign:'left',borderRadius:8}}>{q} ↗</button>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>Coach IA pret</div>
+          <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:20}}>
+            {['Que manger avant ma seance ?','Analyse mes macros','Conseils recuperation ?'].map(q=>(
+              <button key={q} onClick={()=>setAiIn(q)} style={{...btnB,borderColor:'var(--sb)',color:'var(--blue)',padding:'9px 12px',textAlign:'left',borderRadius:8,fontSize:12}}>{q} ↗</button>
             ))}
           </div>
-          
-          {/* Outils de sauvegarde */}
-          <div style={{borderTop:'1px dashed var(--border)',paddingTop:15,marginTop:10}}>
-            <div style={{fontSize:10,color:'var(--muted)',marginBottom:8}}>GESTION DES DONNÉES (JSON)</div>
-            <div style={{display:'flex',justifyContent:'center',gap:10}}>
-              <button onClick={exportData} style={btnB}>📤 Exporter Sauvegarde</button>
-              <button onClick={() => fileInputRef.current.click()} style={btnB}>📥 Importer un Fichier</button>
-              <input type="file" ref={fileInputRef} accept=".json" onChange={importData} style={{display:'none'}}/>
+          <div style={{borderTop:'1px dashed var(--border)',paddingTop:14}}>
+            <div style={{fontSize:10,color:'var(--muted)',marginBottom:10,...mono}}>GESTION DES DONNEES</div>
+            <div style={{display:'flex',justifyContent:'center',gap:8}}>
+              <button onClick={exportData} style={{...btnB,padding:'8px 14px',fontSize:12}}>📤 Exporter</button>
+              <button onClick={()=>fileRef.current.click()} style={{...btnB,padding:'8px 14px',fontSize:12}}>📥 Importer</button>
+              <input type="file" ref={fileRef} accept=".json" onChange={importData} style={{display:'none'}}/>
             </div>
           </div>
         </div>}
         {aiMsgs.map((m,i)=>(
           <div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
-            <div style={{maxWidth:'82%',padding:'8px 11px',borderRadius:10,fontSize:12,lineHeight:1.6,background:m.role==='user'?'var(--si)':'var(--surface)',color:m.role==='user'?'var(--blue)':'var(--text)',border:'1px solid '+(m.role==='user'?'var(--sb)':'var(--border)')}}>{m.content}</div>
+            <div style={{maxWidth:'82%',padding:'9px 12px',borderRadius:10,fontSize:13,lineHeight:1.6,background:m.role==='user'?'var(--si)':'var(--surface)',color:m.role==='user'?'var(--blue)':'var(--text)',border:'1px solid '+(m.role==='user'?'var(--sb)':'var(--border)')}}>{m.content}</div>
           </div>
         ))}
-        {aiLoad&&<div style={{display:'flex'}}><div style={{padding:'7px 12px',borderRadius:10,...card,fontSize:12,color:'var(--muted)'}}>Coach réfléchit…</div></div>}
+        {aiLoad&&<div style={{display:'flex'}}><div style={{padding:'8px 13px',borderRadius:10,...card,fontSize:13,color:'var(--muted)'}}>Coach reflechit...</div></div>}
       </div>
-      <div style={{display:'flex',gap:7,paddingTop:6}}>
-        <input value={aiIn} onChange={e=>setAiIn(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&sendAI()} placeholder="Pose ta question…" style={{flex:1,padding:'9px 12px',fontSize:12,borderRadius:8}}/>
-        <button onClick={sendAI} disabled={aiLoad||!aiIn.trim()} style={{...btnG,padding:'9px 14px',fontSize:12,opacity:(aiLoad||!aiIn.trim())?0.5:1}}>↗</button>
+      <div style={{display:'flex',gap:8,paddingTop:8}}>
+        <input value={aiIn} onChange={e=>setAiIn(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&sendAI()} placeholder="Pose ta question..." style={{flex:1,padding:'10px 13px',borderRadius:8}}/>
+        <button onClick={sendAI} disabled={aiLoad||!aiIn.trim()} style={{...btnG,padding:'10px 16px',fontSize:13,opacity:(aiLoad||!aiIn.trim())?0.5:1}}>↗</button>
       </div>
     </div>;
   }
 
   return <div style={{minHeight:'100vh',background:'var(--bg)'}}>
-    {/* Header */}
     <div className="hdr">
       <div style={{flex:1}}>
         <div style={{fontSize:14,fontWeight:700,letterSpacing:'-0.3px'}}>COACH <span style={{color:'var(--accent)'}}>DASHBOARD</span></div>
         <div style={{fontSize:8,color:'var(--muted)',...mono}}>HYROX · MAASTRICHT 2026</div>
       </div>
-      <span style={{fontSize:9,padding:'3px 8px',borderRadius:20,...mono,background:nas==='ok'?'var(--gi)':'rgba(255,77,77,.08)',color:nas==='ok'?'var(--accent)':'var(--red)',border:'1px solid '+(nas==='ok'?'var(--gb)':'rgba(255,77,77,.25)')}}>
-        {nas==='ok'?'📱 STANDALONE':'⚠ ERR'}
-      </span>
+      <span style={{fontSize:9,padding:'3px 8px',borderRadius:20,...mono,background:'var(--gi)',color:'var(--accent)',border:'1px solid var(--gb)'}}>📱 LOCAL</span>
       {badge&&<span style={{fontSize:9,color:'var(--accent)',...mono,marginLeft:6}}>{badge}</span>}
     </div>
 
-    {/* Calendrier collapsible */}
     <div className="cal-hdr" onClick={()=>setCal(o=>!o)}>
       <div style={{flex:1,fontSize:13,fontWeight:600}}>
         <span style={{color:'var(--accent)'}}>{selLabel}</span>
-        {sSes&&<span style={{fontSize:10,color:'var(--blue)',marginLeft:6,...mono}}>⚡ {sSes.title.slice(0,22)}{sSes.title.length>22?'…':''}</span>}
+        {sSes&&<span style={{fontSize:10,color:'var(--blue)',marginLeft:6,...mono}}>⚡ {sSes.title.slice(0,22)}{sSes.title.length>22?'...':''}</span>}
       </div>
       <span style={{fontSize:10,color:'var(--muted)',...mono}}>Calendrier</span>
       <span style={{fontSize:16,color:'var(--muted)',marginLeft:4}}>{calOpen?'▲':'▼'}</span>
     </div>
     <div className="cal-body" style={{maxHeight:calOpen?'320px':'0'}}><Cal/></div>
 
-    {/* Contenu principal */}
     <div className="page">
       {tab==='nutrition' &&<Nutrition/>}
       {tab==='training'  &&<Training/>}
@@ -711,7 +660,6 @@ function App(){
       {tab==='coach'     &&<Coach/>}
     </div>
 
-    {/* Barre de navigation basse */}
     <nav className="bnav">
       {TABS.map(t=>(
         <button key={t.id} className={'ni'+(tab===t.id?' on':'')} onClick={()=>setTab(t.id)}>
