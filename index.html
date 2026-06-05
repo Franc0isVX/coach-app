@@ -197,8 +197,10 @@ function FoodRow({slot, row, idx, afw, sel, updRow, delRow}){
   const f = afw[row.food];
   const ul = f?(f.ul||(f.unit==='unit'?'u':f.unit==='ml'?'ml':'g')):'g';
   const [localQty, setLocalQty] = useState(row.qty||'');
-  useEffect(()=>{ setLocalQty(row.qty||''); },[row.qty]);
-  const rk = f&&localQty>0 ? Math.round(f.kcal*gew(f,+localQty)/100) : 0;
+  const isFocused = useRef(false);
+  // Sync only when not actively editing (food change resets qty to 0)
+  useEffect(()=>{ if(!isFocused.current) setLocalQty(row.qty||''); },[row.qty]);
+  const rk = f&&+localQty>0 ? Math.round(f.kcal*gew(f,+localQty)/100) : 0;
   return <div className="meal-row">
     <div className="meal-row-top">
       <select value={row.food} onChange={e=>updRow(sel,slot.id,idx,'food',e.target.value)}>
@@ -211,8 +213,9 @@ function FoodRow({slot, row, idx, afw, sel, updRow, delRow}){
     <div className="meal-row-bottom">
       <input type="number" inputMode="decimal" min={0} step={f?.unit==='unit'?1:5}
         value={localQty} placeholder="Quantite"
-        onChange={e=>setLocalQty(e.target.value)}
-        onBlur={e=>updRow(sel,slot.id,idx,'qty',e.target.value)}/>
+        onFocus={()=>isFocused.current=true}
+        onBlur={e=>{isFocused.current=false; updRow(sel,slot.id,idx,'qty',e.target.value);}}
+        onChange={e=>{setLocalQty(e.target.value); updRow(sel,slot.id,idx,'qty',e.target.value);}}/>
       <span className="meal-unit">{ul}</span>
       <span className="meal-kcal">{rk>0?rk+' kcal':'—'}</span>
     </div>
