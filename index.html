@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Coach Dashboard</title>
+<meta name="theme-color" content="#c8f135">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Coach HYROX">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -123,8 +129,14 @@ const {useState,useEffect,useRef} = React;
 const TK = 1965, RK = 1665, MP = {p:177,l:88};
 
 const NAS_SESSIONS = {
-  "2026-06-03":{title:"Test",type:"Force",duree:70,statut:"Fait",source:"Manuel",calories:420}
+  "2026-05-30":{title:"Hybrid Fitness",type:"HIIT",duree:40,statut:"Fait",source:"COROS",calories:521},
+  "2026-05-31":{title:"Hyrox Solo + DUO",type:"Hyrox Coach",duree:98,statut:"Fait",source:"COROS",calories:836},
+  "2026-06-01":{title:"Course Pecquencourt",type:"Cardio",duree:35,statut:"Fait",source:"COROS",calories:438},
+  "2026-06-02":{title:"Musculation",type:"Force",duree:84,statut:"Fait",source:"COROS",calories:324},
+  "2026-06-03":{title:"Test FC max",type:"Cardio",duree:33,statut:"Fait",source:"COROS",calories:422},
+  "2026-06-04":{title:"Cardio Int.",type:"Cardio",duree:65,statut:"Fait",source:"COROS",calories:625}
 };
+const DEFAULT_COROS = {recovery:99,restingHR:50,hrvBaseline:42,sleep:{score:67,duration:'5h42',deep:'1h06',rem:'1h44'},lastSync:'2026-06-05'};
 const NAS_FOODS = {
   "Margarine":{kcal:720,p:0,l:80,g:0,unit:"g"},
   "Confiture ss sucre":{kcal:89,p:0,l:0,g:21.7,unit:"g"},
@@ -190,24 +202,39 @@ function Bar({v,max,c='var(--accent)'}){
   </div>;
 }
 
-// FoodRow est défini en dehors de App pour garantir une référence stable.
-// Sans ça, React démonte/remonte le composant à chaque re-render d'App,
-// ce qui fait disparaître le clavier iOS dès qu'on tape un caractère.
+// FoodRow: défini hors App pour référence stable (évite remount iOS clavier).
 function FoodRow({slot, row, idx, afw, sel, updRow, delRow}){
   const f = afw[row.food];
   const ul = f?(f.ul||(f.unit==='unit'?'u':f.unit==='ml'?'ml':'g')):'g';
   const [localQty, setLocalQty] = useState(row.qty||'');
+  const [fsearch, setFsearch] = useState(row.food||'');
+  const [fdrop, setFdrop] = useState(false);
   const isFocused = useRef(false);
-  // Sync only when not actively editing (food change resets qty to 0)
   useEffect(()=>{ if(!isFocused.current) setLocalQty(row.qty||''); },[row.qty]);
+  useEffect(()=>{ setFsearch(row.food||''); },[row.food]);
+  const foodKeys = Object.keys(afw);
+  const q = fsearch.toLowerCase().replace('[r] ','');
+  const filtered = q ? foodKeys.filter(x=>x.toLowerCase().replace('[r] ','').includes(q)) : foodKeys;
+  const sorted = [...filtered.filter(x=>x.startsWith('[R]')).sort(),...filtered.filter(x=>!x.startsWith('[R]')).sort()].slice(0,25);
   const rk = f&&+localQty>0 ? Math.round(f.kcal*gew(f,+localQty)/100) : 0;
-  return <div className="meal-row">
+  return <div className="meal-row" style={{position:'relative',zIndex:fdrop?100:1}}>
     <div className="meal-row-top">
-      <select value={row.food} onChange={e=>updRow(sel,slot.id,idx,'food',e.target.value)}>
-        <option value="">— Choisir un aliment —</option>
-        <optgroup label="Recettes">{Object.keys(afw).filter(x=>x.startsWith('[R]')).sort().map(x=><option key={x} value={x}>{x.replace('[R] ','')}</option>)}</optgroup>
-        <optgroup label="Aliments">{Object.keys(afw).filter(x=>!x.startsWith('[R]')).sort().map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
-      </select>
+      <div style={{flex:1,position:'relative'}}>
+        <input value={fsearch} inputMode="text" placeholder="Rechercher un aliment..."
+          onFocus={()=>setFdrop(true)}
+          onBlur={()=>setTimeout(()=>setFdrop(false),150)}
+          onChange={e=>{setFsearch(e.target.value);setFdrop(true);}}
+          style={{width:'100%',fontSize:15,padding:'5px 6px',borderRadius:6}}/>
+        {fdrop&&sorted.length>0&&<div style={{position:'absolute',top:'calc(100% + 2px)',left:0,right:0,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,zIndex:999,maxHeight:180,overflowY:'auto',boxShadow:'0 6px 16px rgba(0,0,0,.6)'}}>
+          {sorted.map(x=>(
+            <div key={x}
+              onPointerDown={e=>{e.preventDefault();const disp=x.startsWith('[R]')?x.replace('[R] ',''):x;setFsearch(disp);updRow(sel,slot.id,idx,'food',x);setFdrop(false);}}
+              style={{padding:'8px 10px',fontSize:13,cursor:'pointer',borderBottom:'1px solid var(--border)',color:x.startsWith('[R]')?'var(--accent)':'var(--text)'}}>
+              {x.startsWith('[R]')?'⭐ '+x.replace('[R] ',''):x}
+            </div>
+          ))}
+        </div>}
+      </div>
       <button className="meal-del" onClick={()=>delRow(sel,slot.id,idx)}>✕</button>
     </div>
     <div className="meal-row-bottom">
@@ -231,7 +258,8 @@ function App(){
   const [days,setDays] = useState(()=>localGet('days',NAS_DAYS));
   const [cf,setCf]     = useState(()=>localGet('foods',NAS_FOODS));
   const [recs,setRecs] = useState(()=>localGet('recipes',{}));
-  const [sess,setSess] = useState(()=>localGet('sessions',NAS_SESSIONS));
+  const [sess,setSess] = useState(()=>({...NAS_SESSIONS,...localGet('sessions',{})}));
+  const [corosData,setCorosData] = useState(()=>localGet('coros',DEFAULT_COROS));
   const [badge,setBadge] = useState('');
   const [aiMsgs,setAiMsgs] = useState([]);
   const [aiIn,setAiIn] = useState('');
@@ -294,8 +322,8 @@ function App(){
   }
   function delSess(ds){const s={...sess};delete s[ds];saveSess(s);}
 
-  function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();flash('✓ Exporté');}
-  function importData(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=evt=>{try{const d=JSON.parse(evt.target.result);if(d.days){setDays(d.days);localSet('days',d.days);}if(d.foods){setCf(d.foods);localSet('foods',d.foods);}if(d.recipes){setRecs(d.recipes);localSet('recipes',d.recipes);}if(d.sessions){setSess(d.sessions);localSet('sessions',d.sessions);}flash('Import OK');}catch{alert('Erreur JSON');}};reader.readAsText(file);}
+  function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess,coros:corosData},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();flash('✓ Exporté');}
+  function importData(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=evt=>{try{const d=JSON.parse(evt.target.result);if(d.days){setDays(d.days);localSet('days',d.days);}if(d.foods){setCf(d.foods);localSet('foods',d.foods);}if(d.recipes){setRecs(d.recipes);localSet('recipes',d.recipes);}if(d.sessions){setSess(d.sessions);localSet('sessions',d.sessions);}if(d.coros){setCorosData(d.coros);localSet('coros',d.coros);}flash('Import OK');}catch{alert('Erreur JSON');}};reader.readAsText(file);}
 
   async function sendAI(){
     if(!aiIn.trim())return;
@@ -306,7 +334,7 @@ function App(){
     setTimeout(()=>{if(chatRef.current)chatRef.current.scrollTop=chatRef.current.scrollHeight;},50);
     try{
       const t=gt(sel),tgt=gtgt(sel),s=sess[sel];
-      const sys='Tu es Coach HYROX. Jour:'+sel+' | '+tgt+'kcal | '+t.kcal+'kcal conso | P:'+t.p+'g L:'+t.l+'g G:'+t.g+'g'+(s?' | Seance:'+s.title:'')+(gb(sel)>0?' | '+gb(sel)+'kcal brulees':'')+'. Reponds en francais, max 120 mots.';
+      const sys='Tu es Coach HYROX. Jour:'+sel+' | '+tgt+'kcal | '+t.kcal+'kcal conso | P:'+t.p+'g L:'+t.l+'g G:'+t.g+'g'+(s?' | Seance:'+s.title:'')+(gb(sel)>0?' | '+gb(sel)+'kcal brulees':'')+' | COROS: Recup '+corosData.recovery+'% FC repos '+corosData.restingHR+' HRV '+corosData.hrvBaseline+' Sommeil '+corosData.sleep.score+'/100. Reponds en francais, max 120 mots.';
       const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:sys,messages:msgs})});
       const data=await res.json();
       setAiMsgs([...msgs,{role:'assistant',content:data.content?.[0]?.text||'Erreur.'}]);
@@ -416,8 +444,8 @@ function App(){
         {MEALS.map(slot=>{
           const rows=gm(sel)[slot.id]||[];
           const mk=Math.round(rows.reduce((s,r)=>{const f=afw[r.food];if(!f||!r.qty)return s;const g=gew(f,r.qty);return s+(g>0?f.kcal*g/100:0);},0));
-          return <div key={slot.id} style={{...card,overflow:'hidden'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 10px',borderBottom:'1px solid var(--border)',background:'var(--surface2)'}}>
+          return <div key={slot.id} style={{...card,overflow:'visible'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 10px',borderBottom:'1px solid var(--border)',background:'var(--surface2)',borderRadius:'10px 10px 0 0'}}>
               <span style={{fontSize:13,fontWeight:600}}>{slot.ic} {slot.l}</span>
               <span style={{fontSize:12,color:'var(--accent)',fontWeight:600,...mono}}>{mk>0?mk+' kcal':'—'}</span>
             </div>
@@ -704,9 +732,30 @@ function App(){
   }
 
   function Coach(){
+    const rc=corosData.recovery,rcC=rc>=80?'var(--accent)':rc>=60?'var(--orange)':'var(--red)';
+    const slC=corosData.sleep.score>=70?'var(--accent)':corosData.sleep.score>=50?'var(--orange)':'var(--red)';
     return <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 200px)'}}>
-      <div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:8,padding:'7px 11px',marginBottom:10,fontSize:11,...mono,color:'var(--blue)'}}>
+      <div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:8,padding:'7px 11px',marginBottom:8,fontSize:11,...mono,color:'var(--blue)'}}>
         {selLabel} · {sSes?'Seance':'Repos'} · {sT.kcal}/{sTgt}kcal{sB>0?' +'+sB+'🔥':''} · P:{sT.p}g
+      </div>
+      <div style={{marginBottom:10}}>
+        <div style={{fontSize:9,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:5,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <span>COROS · RÉCUPÉRATION</span>
+          <span style={{color:'var(--muted)'}}>Sync: {corosData.lastSync}</span>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:6}}>
+          {[{l:'RÉCUP',v:rc+'%',c:rcC},{l:'FC REPOS',v:corosData.restingHR,c:'var(--text)'},{l:'HRV',v:corosData.hrvBaseline,c:'var(--blue)'},{l:'SOMMEIL',v:corosData.sleep.score+'/100',c:slC}].map((x,i)=>(
+            <div key={i} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'7px 4px',textAlign:'center'}}>
+              <div style={{fontSize:8,color:'var(--muted)',...mono,marginBottom:3}}>{x.l}</div>
+              <div style={{fontSize:16,fontWeight:700,...mono,color:x.c}}>{x.v}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:'flex',gap:10,marginTop:6,padding:'6px 10px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,fontSize:10,...mono,color:'var(--muted)'}}>
+          <span>💤 {corosData.sleep.duration}</span>
+          <span style={{color:'var(--blue)'}}>Deep {corosData.sleep.deep}</span>
+          <span style={{color:'var(--accent)'}}>REM {corosData.sleep.rem}</span>
+        </div>
       </div>
       <div ref={chatRef} style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:8,paddingBottom:8}}>
         {aiMsgs.length===0&&<div style={{textAlign:'center',padding:'20px',color:'var(--muted)'}}>
@@ -781,5 +830,6 @@ function App(){
 
 ReactDOM.createRoot(document.getElementById('app')).render(<App/>);
 </script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js');</script>
 </body>
 </html>
