@@ -162,158 +162,29 @@ const TYPES=['Cardio','Force','HIIT','Hyrox Coach','Mobilité','Autre'];
 const STATUTS=['À faire','Fait','Modifié','Annulé'];
 
 const BF={
-  // Viandes
   'Poulet blanc cuit':{kcal:165,p:31,l:3.6,g:0,unit:'g'},
-  'Dinde cuite':{kcal:170,p:30,l:5,g:0,unit:'g'},
-  'Steak hache 15%':{kcal:229,p:19,l:16,g:0,unit:'g'},
-  'Steak hache 5%':{kcal:137,p:21,l:5,g:0,unit:'g'},
-  'Boeuf hache 5%':{kcal:137,p:21,l:5,g:0,unit:'g'},
-  'Cote de porc':{kcal:210,p:27,l:11,g:0,unit:'g'},
-  'Veau escalope':{kcal:131,p:24,l:3.5,g:0,unit:'g'},
-  'Agneau':{kcal:235,p:26,l:14,g:0,unit:'g'},
-  'Boeuf roti':{kcal:185,p:28,l:8,g:0,unit:'g'},
-  'Chorizo':{kcal:386,p:22,l:33,g:1,unit:'g'},
-  'Merguez':{kcal:290,p:16,l:25,g:1,unit:'g'},
-  'Jambon blanc':{kcal:107,p:17,l:3,g:2,unit:'g'},
-  // Poissons
   'Saumon cuit':{kcal:208,p:20,l:13,g:0,unit:'g'},
   'Thon en boite':{kcal:116,p:26,l:1,g:0,unit:'g'},
-  'Cabillaud cuit':{kcal:82,p:18,l:0.7,g:0,unit:'g'},
-  'Maquereau cuit':{kcal:239,p:19,l:17,g:0,unit:'g'},
-  'Sardine en boite':{kcal:208,p:25,l:12,g:0,unit:'g'},
-  'Crevettes cuites':{kcal:99,p:21,l:1.7,g:0,unit:'g'},
-  'Dorade cuite':{kcal:131,p:21,l:5,g:0,unit:'g'},
-  'Truite cuite':{kcal:168,p:22,l:8.5,g:0,unit:'g'},
-  'Bar cuit':{kcal:124,p:22,l:3.5,g:0,unit:'g'},
-  'Lieu noir cuit':{kcal:90,p:19,l:1,g:0,unit:'g'},
-  'Haddock':{kcal:89,p:19,l:0.7,g:0,unit:'g'},
-  'Moules cuites':{kcal:86,p:12,l:2.2,g:3.7,unit:'g'},
-  // Oeufs / Laitages
   'Oeufs entiers':{kcal:155,p:13,l:11,g:1,unit:'unit',uw:60},
   'Blancs oeufs':{kcal:52,p:11,l:0.2,g:1,unit:'unit',uw:35},
-  'Lait ecreme':{kcal:34,p:3.4,l:0.1,g:5,unit:'ml'},
-  'Lait demi-ecreme':{kcal:46,p:3.2,l:1.6,g:4.8,unit:'ml'},
-  'Lait entier':{kcal:64,p:3.2,l:3.5,g:4.8,unit:'ml'},
+  'Boeuf hache 5%':{kcal:137,p:21,l:5,g:0,unit:'g'},
   'Fromage blanc 0%':{kcal:45,p:8,l:0.2,g:3.5,unit:'g'},
-  'Fromage blanc 20%':{kcal:98,p:7,l:5.6,g:4.5,unit:'g'},
   'Skyr nature':{kcal:65,p:11,l:0.2,g:4,unit:'g'},
-  'Yaourt grec entier':{kcal:97,p:9,l:5,g:3.6,unit:'g'},
-  'Cottage cheese':{kcal:98,p:11,l:4.3,g:3.4,unit:'g'},
-  'Mozzarella':{kcal:255,p:18,l:20,g:2.2,unit:'g'},
-  'Parmesan':{kcal:392,p:36,l:26,g:3.2,unit:'g'},
-  'Emmental':{kcal:382,p:29,l:29,g:1.5,unit:'g'},
-  'Gruyere':{kcal:396,p:27,l:31,g:0.4,unit:'g'},
-  'Feta':{kcal:264,p:14,l:21,g:4,unit:'g'},
-  'Fromage de chevre':{kcal:254,p:15,l:20,g:2,unit:'g'},
-  'Creme fraiche 30%':{kcal:292,p:2.5,l:30,g:3,unit:'g'},
-  'Beurre':{kcal:745,p:0.6,l:82,g:0.6,unit:'g'},
-  'Ricotta':{kcal:174,p:11,l:13,g:3,unit:'g'},
-  'Kefir':{kcal:52,p:3.5,l:2,g:5,unit:'ml'},
-  'Lait de coco':{kcal:197,p:1.8,l:21,g:2.8,unit:'ml'},
   'Whey proteine':{kcal:380,p:75,l:5,g:8,unit:'g'},
-  // Cereales / Feculents
+  'Riz basmati cuit':{kcal:130,p:2.7,l:0.3,g:28,unit:'g'},
+  'Pates cuites':{kcal:131,p:5,l:1,g:25,unit:'g'},
   'Flocons avoine':{kcal:370,p:13,l:7,g:60,unit:'g'},
   'Pain complet':{kcal:247,p:9,l:3,g:44,unit:'g'},
-  'Pain blanc':{kcal:265,p:8,l:2.5,g:52,unit:'g'},
-  'Pain de seigle':{kcal:259,p:9,l:2,g:48,unit:'g'},
-  'Pates cuites':{kcal:131,p:5,l:1,g:25,unit:'g'},
-  'Riz basmati cuit':{kcal:130,p:2.7,l:0.3,g:28,unit:'g'},
-  'Riz blanc cuit':{kcal:130,p:2.7,l:0.3,g:28,unit:'g'},
-  'Riz complet cuit':{kcal:112,p:2.5,l:0.9,g:23,unit:'g'},
-  'Quinoa cuit':{kcal:120,p:4.4,l:1.9,g:21,unit:'g'},
   'Patate douce cuite':{kcal:90,p:2,l:0.1,g:21,unit:'g'},
-  'Lentilles cuites':{kcal:116,p:9,l:0.4,g:20,unit:'g'},
-  'Pois chiches cuits':{kcal:164,p:8.9,l:2.6,g:27,unit:'g'},
-  'Haricots rouges cuits':{kcal:127,p:8.7,l:0.5,g:22,unit:'g'},
-  'Haricots blancs cuits':{kcal:120,p:8,l:0.4,g:22,unit:'g'},
-  'Semoule cuite':{kcal:112,p:3.8,l:0.3,g:23,unit:'g'},
-  'Wrap nature':{kcal:300,p:8,l:8,g:48,unit:'g'},
-  'Galette de riz':{kcal:385,p:7.5,l:3,g:80,unit:'g'},
-  'Corn flakes':{kcal:370,p:7,l:0.9,g:84,unit:'g'},
-  'Granola':{kcal:450,p:9,l:16,g:67,unit:'g'},
-  'Muesli':{kcal:370,p:10,l:8,g:60,unit:'g'},
-  'Orge cuite':{kcal:123,p:2.3,l:0.4,g:28,unit:'g'},
-  'Boulgour cuit':{kcal:83,p:3,l:0.2,g:18,unit:'g'},
-  'Gnocchis cuits':{kcal:130,p:3,l:1.2,g:27,unit:'g'},
-  // Legumes
-  'Tomate':{kcal:18,p:0.9,l:0.2,g:3.5,unit:'g'},
-  'Courgette':{kcal:17,p:1.2,l:0.3,g:3.1,unit:'g'},
-  'Carotte':{kcal:41,p:0.9,l:0.2,g:9.6,unit:'g'},
-  'Concombre':{kcal:15,p:0.7,l:0.1,g:3.1,unit:'g'},
-  'Poivron rouge':{kcal:31,p:1,l:0.3,g:6,unit:'g'},
-  'Chou-fleur':{kcal:25,p:1.9,l:0.3,g:5,unit:'g'},
-  'Champignons':{kcal:22,p:3.1,l:0.3,g:3.3,unit:'g'},
-  'Haricots verts cuits':{kcal:35,p:1.9,l:0.3,g:7.1,unit:'g'},
-  'Petits pois':{kcal:81,p:5.4,l:0.4,g:14,unit:'g'},
-  'Salade verte':{kcal:15,p:1.3,l:0.2,g:2.2,unit:'g'},
-  'Oignon':{kcal:40,p:1.1,l:0.1,g:9.3,unit:'g'},
-  'Asperges':{kcal:20,p:2.2,l:0.1,g:3.7,unit:'g'},
-  'Celeri':{kcal:14,p:0.7,l:0.2,g:2.9,unit:'g'},
-  'Poireau cuit':{kcal:31,p:1.5,l:0.3,g:7,unit:'g'},
-  'Aubergine cuite':{kcal:35,p:0.8,l:0.2,g:8.6,unit:'g'},
-  'Chou blanc':{kcal:25,p:1.3,l:0.1,g:5.8,unit:'g'},
-  'Radis':{kcal:16,p:0.7,l:0.1,g:3.4,unit:'g'},
-  'Betterave cuite':{kcal:44,p:1.7,l:0.1,g:9.6,unit:'g'},
-  'Artichaut cuit':{kcal:53,p:2.9,l:0.2,g:10.5,unit:'g'},
-  'Chou rouge':{kcal:31,p:1.5,l:0.1,g:7,unit:'g'},
-  'Endive':{kcal:17,p:0.9,l:0.1,g:3.5,unit:'g'},
-  'Fenouil':{kcal:31,p:1.2,l:0.2,g:7.3,unit:'g'},
-  'Navet':{kcal:28,p:0.9,l:0.1,g:6.4,unit:'g'},
-  'Courge cuite':{kcal:26,p:1,l:0.1,g:6.5,unit:'g'},
-  'Mais en boite':{kcal:86,p:3.2,l:1.2,g:17,unit:'g'},
-  'Olives noires':{kcal:145,p:1,l:15,g:3.8,unit:'g'},
+  'Banane':{kcal:89,p:1.1,l:0.3,g:23,unit:'unit',uw:120},
   'Epinards':{kcal:23,p:2.9,l:0.4,g:3.6,unit:'g'},
   'Brocolis':{kcal:35,p:2.4,l:0.4,g:7,unit:'g'},
   'Avocat':{kcal:160,p:2,l:15,g:9,unit:'g'},
-  // Fruits
-  'Banane':{kcal:89,p:1.1,l:0.3,g:23,unit:'unit',uw:120},
-  'Pomme':{kcal:52,p:0.3,l:0.2,g:14,unit:'unit',uw:150},
-  'Orange':{kcal:47,p:0.9,l:0.1,g:12,unit:'unit',uw:150},
-  'Poire':{kcal:57,p:0.4,l:0.1,g:15,unit:'unit',uw:170},
-  'Kiwi':{kcal:61,p:1.1,l:0.5,g:15,unit:'unit',uw:80},
-  'Fraises':{kcal:32,p:0.7,l:0.3,g:7.7,unit:'g'},
-  'Myrtilles':{kcal:57,p:0.7,l:0.3,g:14,unit:'g'},
-  'Framboises':{kcal:52,p:1.2,l:0.7,g:12,unit:'g'},
-  'Raisin':{kcal:69,p:0.7,l:0.2,g:18,unit:'g'},
-  'Mangue':{kcal:60,p:0.8,l:0.4,g:15,unit:'g'},
-  'Ananas':{kcal:50,p:0.5,l:0.1,g:13,unit:'g'},
-  'Pasteque':{kcal:30,p:0.6,l:0.2,g:7.6,unit:'g'},
-  'Melon':{kcal:34,p:0.8,l:0.2,g:8,unit:'g'},
-  'Peche':{kcal:39,p:0.9,l:0.3,g:10,unit:'unit',uw:150},
-  'Abricot':{kcal:48,p:1.4,l:0.4,g:11,unit:'unit',uw:60},
-  'Cerise':{kcal:63,p:1,l:0.2,g:16,unit:'g'},
-  'Figue fraiche':{kcal:74,p:0.7,l:0.3,g:19,unit:'g'},
-  // Matieres grasses / Noix
-  'Huile olive':{kcal:884,p:0,l:100,g:0,unit:'ml'},
-  'Huile de coco':{kcal:900,p:0,l:100,g:0,unit:'ml'},
-  'Huile de colza':{kcal:884,p:0,l:100,g:0,unit:'ml'},
-  'Beurre de cacahuete':{kcal:588,p:25,l:50,g:20,unit:'g'},
   'Amandes':{kcal:579,p:21,l:50,g:22,unit:'g'},
-  'Noix':{kcal:654,p:15,l:65,g:14,unit:'g'},
-  'Noix de cajou':{kcal:553,p:18,l:44,g:30,unit:'g'},
-  'Cacahuetes':{kcal:567,p:26,l:49,g:16,unit:'g'},
-  'Graines de chia':{kcal:486,p:17,l:31,g:42,unit:'g'},
-  'Graines de lin':{kcal:534,p:18,l:42,g:29,unit:'g'},
-  'Tahini':{kcal:595,p:17,l:53,g:21,unit:'g'},
-  'Pistaches':{kcal:560,p:20,l:45,g:28,unit:'g'},
-  'Noix de pecan':{kcal:691,p:9,l:72,g:14,unit:'g'},
-  // Complements
-  'Creatine':{kcal:0,p:0,l:0,g:0,unit:'g'},
-  'Caseine':{kcal:370,p:78,l:2,g:8,unit:'g'},
-  'Maltodextrine':{kcal:380,p:0,l:0,g:95,unit:'g'},
-  'Gel energetique':{kcal:100,p:0,l:0,g:25,unit:'unit',uw:60},
-  // Divers
-  'Chocolat noir 70%':{kcal:598,p:7,l:43,g:46,unit:'g'},
-  'Miel':{kcal:304,p:0.3,l:0,g:82,unit:'g'},
-  'Sauce soja':{kcal:53,p:8,l:0,g:5,unit:'ml'},
-  'Houmous':{kcal:177,p:8,l:10,g:17,unit:'g'},
-  'Tofu ferme':{kcal:76,p:8,l:4.2,g:1.9,unit:'g'},
-  'Edamame':{kcal:122,p:11,l:5,g:10,unit:'g'},
-  'Tempeh':{kcal:193,p:19,l:11,g:9,unit:'g'},
-  'Skyr proteine':{kcal:66,p:12,l:0.2,g:4,unit:'g'},
-  'Proteine de pois':{kcal:370,p:80,l:2,g:5,unit:'g'},
-  'Cafe':{kcal:0,p:0,l:0,g:0,unit:'ml'},
-  'The':{kcal:0,p:0,l:0,g:0,unit:'ml'},
+  'Yaourt grec entier':{kcal:97,p:9,l:5,g:3.6,unit:'g'},
+  'Huile olive':{kcal:884,p:0,l:100,g:0,unit:'ml'},
+  'Jambon blanc':{kcal:107,p:17,l:3,g:2,unit:'g'},
+  'Feta':{kcal:264,p:14,l:21,g:4,unit:'g'},
 };
 
 function dstr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -332,12 +203,15 @@ function Bar({v,max,c='var(--accent)'}){
 }
 
 // FoodRow: défini hors App pour référence stable (évite remount iOS clavier).
-function FoodRow({slot, row, idx, afw, sel, updRow, delRow}){
+function FoodRow({slot, row, idx, afw, sel, updRow, delRow, addCF}){
   const f = afw[row.food];
   const ul = f?(f.ul||(f.unit==='unit'?'u':f.unit==='ml'?'ml':'g')):'g';
   const [localQty, setLocalQty] = useState(row.qty||'');
   const [fsearch, setFsearch] = useState(row.food||'');
   const [fdrop, setFdrop] = useState(false);
+  const [offRes, setOffRes] = useState([]);
+  const [offLoad, setOffLoad] = useState(false);
+  const offTimer = useRef(null);
   const isFocused = useRef(false);
   useEffect(()=>{ if(!isFocused.current) setLocalQty(row.qty||''); },[row.qty]);
   useEffect(()=>{ setFsearch(row.food||''); },[row.food]);
@@ -345,6 +219,31 @@ function FoodRow({slot, row, idx, afw, sel, updRow, delRow}){
   const q = fsearch.toLowerCase().replace('[r] ','');
   const filtered = q ? foodKeys.filter(x=>x.toLowerCase().replace('[r] ','').includes(q)) : foodKeys;
   const sorted = [...filtered.filter(x=>x.startsWith('[R]')).sort(),...filtered.filter(x=>!x.startsWith('[R]')).sort()].slice(0,25);
+  useEffect(()=>{
+    clearTimeout(offTimer.current);
+    if(fsearch.length < 3 || sorted.length >= 10){ setOffRes([]); return; }
+    setOffLoad(true);
+    offTimer.current = setTimeout(async ()=>{
+      try{
+        const enc = encodeURIComponent(fsearch);
+        const res = await fetch('https://world.openfoodfacts.org/cgi/search.pl?search_terms='+enc+'&search_simple=1&action=process&json=1&fields=product_name,nutriments&page_size=5');
+        const data = await res.json();
+        const products = (data.products||[])
+          .filter(p=>p.product_name && p.nutriments && p.nutriments['energy-kcal_100g'])
+          .map(p=>({
+            name: p.product_name,
+            kcal: Math.round(p.nutriments['energy-kcal_100g']||0),
+            p: Math.round((p.nutriments['proteins_100g']||0)*10)/10,
+            l: Math.round((p.nutriments['fat_100g']||0)*10)/10,
+            g: Math.round((p.nutriments['carbohydrates_100g']||0)*10)/10,
+            unit: 'g'
+          }));
+        setOffRes(products);
+      }catch{ setOffRes([]); }
+      setOffLoad(false);
+    }, 700);
+    return ()=>clearTimeout(offTimer.current);
+  },[fsearch, sorted.length]);
   const rk = f&&+localQty>0 ? Math.round(f.kcal*gew(f,+localQty)/100) : 0;
   return <div className="meal-row" style={{position:'relative',zIndex:fdrop?100:1}}>
     <div className="meal-row-top">
@@ -354,7 +253,7 @@ function FoodRow({slot, row, idx, afw, sel, updRow, delRow}){
           onBlur={()=>setTimeout(()=>setFdrop(false),150)}
           onChange={e=>{setFsearch(e.target.value);setFdrop(true);}}
           style={{width:'100%',fontSize:15,padding:'5px 6px',borderRadius:6}}/>
-        {fdrop&&sorted.length>0&&<div style={{position:'absolute',top:'calc(100% + 2px)',left:0,right:0,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,zIndex:999,maxHeight:180,overflowY:'auto',boxShadow:'0 6px 16px rgba(0,0,0,.6)'}}>
+        {fdrop&&(sorted.length>0||offLoad||offRes.length>0)&&<div style={{position:'absolute',top:'calc(100% + 2px)',left:0,right:0,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,zIndex:999,maxHeight:180,overflowY:'auto',boxShadow:'0 6px 16px rgba(0,0,0,.6)'}}>
           {sorted.map(x=>(
             <div key={x}
               onPointerDown={e=>{e.preventDefault();const disp=x.startsWith('[R]')?x.replace('[R] ',''):x;setFsearch(disp);updRow(sel,slot.id,idx,'food',x);setFdrop(false);}}
@@ -362,6 +261,17 @@ function FoodRow({slot, row, idx, afw, sel, updRow, delRow}){
               {x.startsWith('[R]')?'⭐ '+x.replace('[R] ',''):x}
             </div>
           ))}
+          {offLoad&&<div style={{padding:'8px 10px',fontSize:12,color:'var(--muted)'}}>🌐 Recherche...</div>}
+          {!offLoad&&offRes.length>0&&<div>
+            <div style={{padding:'4px 10px',fontSize:10,color:'var(--muted)',fontWeight:600,background:'var(--surface2)',letterSpacing:'0.05em'}}>OPEN FOOD FACTS</div>
+            {offRes.map((p,i)=>(
+              <div key={i}
+                onPointerDown={e=>{e.preventDefault();addCF(p.name,{kcal:p.kcal,p:p.p,l:p.l,g:p.g,unit:'g'});updRow(sel,slot.id,idx,'food',p.name);setFsearch(p.name);setFdrop(false);setOffRes([]);}}
+                style={{padding:'8px 10px',fontSize:13,cursor:'pointer',borderBottom:'1px solid var(--border)',color:'var(--blue)'}}>
+                {p.name} <span style={{fontSize:10,color:'var(--muted)'}}>{p.kcal}kcal · P:{p.p}g L:{p.l}g G:{p.g}g</span>
+              </div>
+            ))}
+          </div>}
         </div>}
       </div>
       <button className="meal-del" onClick={()=>delRow(sel,slot.id,idx)}>✕</button>
@@ -452,6 +362,7 @@ function App(){
     setES(null);
   }
   function delSess(ds){const s={...sess};delete s[ds];saveSess(s);}
+  function addCF(name,data){const c={...cf,[name]:data};setCf(c);localSet('foods',c);}
 
   function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess,coros:corosData},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();flash('✓ Exporté');}
   function importData(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=evt=>{try{const d=JSON.parse(evt.target.result);if(d.days){setDays(d.days);localSet('days',d.days);}if(d.foods){setCf(d.foods);localSet('foods',d.foods);}if(d.recipes){setRecs(d.recipes);localSet('recipes',d.recipes);}if(d.sessions){setSess(d.sessions);localSet('sessions',d.sessions);}if(d.coros){setCorosData(d.coros);localSet('coros',d.coros);}flash('Import OK');}catch{alert('Erreur JSON');}};reader.readAsText(file);}
@@ -580,7 +491,7 @@ function App(){
               <span style={{fontSize:13,fontWeight:600}}>{slot.ic} {slot.l}</span>
               <span style={{fontSize:12,color:'var(--accent)',fontWeight:600,...mono}}>{mk>0?mk+' kcal':'—'}</span>
             </div>
-            {rows.map((row,idx)=><FoodRow key={slot.id+'-'+idx} slot={slot} row={row} idx={idx} afw={afw} sel={sel} updRow={updRow} delRow={delRow}/>)}
+            {rows.map((row,idx)=><FoodRow key={slot.id+'-'+idx} slot={slot} row={row} idx={idx} afw={afw} sel={sel} updRow={updRow} delRow={delRow} addCF={addCF}/>)}
             <div style={{padding:'6px 8px'}}>
               <button onClick={()=>addRow(sel,slot.id)} style={{width:'100%',padding:'6px',fontSize:12,border:'1px dashed var(--border)',borderRadius:6,background:'none',color:'var(--muted)',cursor:'pointer'}}>
                 + Ajouter un aliment
