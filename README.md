@@ -1,9 +1,18 @@
-# Coach Dashboard
+# Coach Dashboard HYROX
 
-PWA pour coaching HYROX - Nutrition, Séances, Analytics.
+Progressive Web App pour gestion nutrition, séances d'entraînement et coaching IA.
 
-## Nouveau setup Vite + React + TS
+## Développement
 
+```bash
+git checkout vite-refactor
 npm install
 npm run dev
+```
+
+Build:
+```bash
 npm run build
+```
+
+Le projet est en cours de migration vers Vite + React + TypeScript + PWA optimisée.
