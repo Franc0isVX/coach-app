@@ -316,6 +316,8 @@ function App(){
   const chatRef        = useRef(null);
   const fileRef        = useRef(null);
   const aiInputRef     = useRef(null);
+  const saveDayTimer   = useRef(null);
+  const [apiKey,setApiKey] = useState(()=>localStorage.getItem('hyrox_apikey')||'');
 
   useEffect(()=>{
     if(!localStorage.getItem('hyrox_days')){localSet('days',NAS_DAYS);localSet('foods',NAS_FOODS);localSet('sessions',NAS_SESSIONS);}
@@ -327,7 +329,7 @@ function App(){
   const af={...BF,...cf};
   const afw={...af};
   Object.entries(recs).forEach(([n,r])=>{
-    if(r.totals&&r.portions) afw['[R] '+n]={kcal:Math.round(r.totals.kcal/r.portions),p:Math.round(r.totals.p/r.portions*10)/10,l:Math.round(r.totals.l/r.portions*10)/10,g:Math.round(r.totals.g/r.portions*10)/10,unit:'unit',uw:1,ul:'portion(s)'};
+    if(r.totals&&r.portions>0) afw['[R] '+n]={kcal:Math.round(r.totals.kcal/r.portions),p:Math.round(r.totals.p/r.portions*10)/10,l:Math.round(r.totals.l/r.portions*10)/10,g:Math.round(r.totals.g/r.portions*10)/10,unit:'unit',uw:1,ul:'portion(s)'};
   });
 
   const gdt  = ds=>sess[ds]?'notion':'rest';
@@ -337,14 +339,14 @@ function App(){
   const gt   = ds=>totals(gm(ds),afw);
   const gb   = ds=>sess[ds]?.calories||days[ds]?.cal||0;
 
-  function saveDay(dd,ds){setDays(dd);localSet('days',dd);}
+  function saveDay(dd){setDays(dd);if(saveDayTimer.current)clearTimeout(saveDayTimer.current);saveDayTimer.current=setTimeout(()=>localSet('days',dd),800);}
   function addRow(ds,mid){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].meals[mid]=[...(dd[ds].meals[mid]||[]),{food:'',qty:0}];saveDay(dd,ds);}
   function updRow(ds,mid,idx,fld,val){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};const row=dd[ds].meals[mid][idx];if(!row)return;if(fld==='food'){row.food=val;row.qty=0;}else row.qty=parseFloat(val)||0;saveDay(dd,ds);}
   function delRow(ds,mid,idx){const dd=JSON.parse(JSON.stringify(days));dd[ds].meals[mid].splice(idx,1);saveDay(dd,ds);}
   function setCalB(ds,v){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].cal=v;saveDay(dd,ds);}
   function saveCf(){if(!nf.name||!nf.kcal)return;const c={...cf,[nf.name]:{kcal:+nf.kcal,p:+nf.p||0,l:+nf.l||0,g:+nf.g||0,unit:nf.unit}};setCf(c);localSet('foods',c);flash('✓ '+nf.name);setNf({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});setAF(false);}
   function rTotals(ings){let k=0,p=0,l=0,g=0;ings.forEach(r=>{const f=af[r.food];if(f&&r.qty>0){const gr=gew(f,r.qty);const x=gr/100;k+=f.kcal*x;p+=f.p*x;l+=f.l*x;g+=f.g*x;}});return{kcal:Math.round(k),p:Math.round(p),l:Math.round(l),g:Math.round(g)};}
-  function saveRec(){if(!nr.name)return;const ings=nr.ings.filter(i=>i.food&&i.qty>0);if(!ings.length)return;const t=rTotals(ings);const r={...recs,[nr.name]:{portions:nr.portions,desc:nr.desc,ingredients:ings,totals:t}};setRecs(r);localSet('recipes',r);flash('✓ '+nr.name);setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});setRtab('list');}
+  function saveRec(){if(!nr.name)return;const ings=nr.ings.filter(i=>i.food&&i.qty>0);if(!ings.length)return;const t=rTotals(ings);const r={...recs,[nr.name]:{portions:Math.max(1,nr.portions||1),desc:nr.desc,ingredients:ings,totals:t}};setRecs(r);localSet('recipes',r);flash('✓ '+nr.name);setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});setRtab('list');}
   function delRec(n){const r={...recs};delete r[n];setRecs(r);localSet('recipes',r);}
   function saveSess(s){setSess(s);localSet('sessions',s);flash('✓ Séances');}
   function saveNewSess(){
@@ -377,7 +379,7 @@ function App(){
     try{
       const t=gt(sel),tgt=gtgt(sel),s=sess[sel];
       const sys='Tu es Coach HYROX. Jour:'+sel+' | '+tgt+'kcal | '+t.kcal+'kcal conso | P:'+t.p+'g L:'+t.l+'g G:'+t.g+'g'+(s?' | Seance:'+s.title:'')+(gb(sel)>0?' | '+gb(sel)+'kcal brulees':'')+' | COROS: Recup '+corosData.recovery+'% FC repos '+corosData.restingHR+' HRV '+corosData.hrvBaseline+' Sommeil '+corosData.sleep.score+'/100. Reponds en francais, max 120 mots.';
-      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:sys,messages:msgs})});
+      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:500,system:sys,messages:msgs})});
       const data=await res.json();
       setAiMsgs([...msgs,{role:'assistant',content:data.content?.[0]?.text||'Erreur.'}]);
     }catch{setAiMsgs([...msgs,{role:'assistant',content:'Erreur connexion.'}]);}
@@ -674,7 +676,7 @@ function App(){
       </div>}
       <div style={{display:'flex',flexDirection:'column',gap:8}}>
         {Object.entries(sess).sort((a,b)=>b[0].localeCompare(a[0])).map(([ds,s])=>{
-          const done=s.statut==='Fait',mod=s.statut==='Modifie',ann=s.statut==='Annule';
+          const done=s.statut==='Fait',mod=s.statut==='Modifié',ann=s.statut==='Annulé';
           const isEd=editSess?.date===ds;
           return <div key={ds} style={{...card,padding:'10px 12px',borderColor:ds===sel?'var(--accent)':'var(--border)'}}>
             {isEd
@@ -828,7 +830,15 @@ function App(){
   function Coach(){
     const rc=corosData.recovery,rcC=rc>=80?'var(--accent)':rc>=60?'var(--orange)':'var(--red)';
     const slC=corosData.sleep.score>=70?'var(--accent)':corosData.sleep.score>=50?'var(--orange)':'var(--red)';
+    function saveApiKey(k){setApiKey(k);localStorage.setItem('hyrox_apikey',k);}
     return <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 200px)'}}>
+      {!apiKey&&<div style={{background:'var(--oi)',border:'1px solid var(--ob)',borderRadius:8,padding:'8px 11px',marginBottom:8}}>
+        <div style={{fontSize:10,...mono,color:'var(--orange)',marginBottom:5}}>⚠ Clé API Anthropic requise pour le Coach IA</div>
+        <div style={{display:'flex',gap:6}}>
+          <input type="password" placeholder="sk-ant-api03-..." value={apiKey} onChange={e=>saveApiKey(e.target.value)} style={{flex:1,padding:'6px 9px',fontSize:13,borderRadius:6}}/>
+        </div>
+        <div style={{fontSize:9,color:'var(--muted)',marginTop:4,...mono}}>Stockée localement sur votre appareil · console.anthropic.com</div>
+      </div>}
       <div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:8,padding:'7px 11px',marginBottom:8,fontSize:11,...mono,color:'var(--blue)'}}>
         {selLabel} · {sSes?'Seance':'Repos'} · {sT.kcal}/{sTgt}kcal{sB>0?' +'+sB+'🔥':''} · P:{sT.p}g
       </div>
