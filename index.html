@@ -163,28 +163,82 @@ const STATUTS=['À faire','Fait','Modifié','Annulé'];
 
 const BF={
   'Poulet blanc cuit':{kcal:165,p:31,l:3.6,g:0,unit:'g'},
+  'Dinde blanc cuit':{kcal:157,p:30,l:3,g:0,unit:'g'},
   'Saumon cuit':{kcal:208,p:20,l:13,g:0,unit:'g'},
+  'Saumon fumé':{kcal:144,p:21,l:6.5,g:0,unit:'g'},
   'Thon en boite':{kcal:116,p:26,l:1,g:0,unit:'g'},
+  'Sardines à lhuile':{kcal:208,p:25,l:11,g:0,unit:'g'},
+  'Crevettes cuites':{kcal:99,p:21,l:1.1,g:0.2,unit:'g'},
+  'Steak boeuf maigre':{kcal:171,p:26,l:6.5,g:0,unit:'g'},
+  'Boeuf hache 5%':{kcal:137,p:21,l:5,g:0,unit:'g'},
   'Oeufs entiers':{kcal:155,p:13,l:11,g:1,unit:'unit',uw:60},
   'Blancs oeufs':{kcal:52,p:11,l:0.2,g:1,unit:'unit',uw:35},
-  'Boeuf hache 5%':{kcal:137,p:21,l:5,g:0,unit:'g'},
+  'Jambon blanc':{kcal:107,p:17,l:3,g:2,unit:'g'},
+  'Jambon de pays':{kcal:145,p:26,l:4,g:0,unit:'g'},
   'Fromage blanc 0%':{kcal:45,p:8,l:0.2,g:3.5,unit:'g'},
   'Skyr nature':{kcal:65,p:11,l:0.2,g:4,unit:'g'},
+  'Yaourt grec entier':{kcal:97,p:9,l:5,g:3.6,unit:'g'},
+  'Yaourt grec 0%':{kcal:59,p:10,l:0.4,g:3.6,unit:'g'},
+  'Cottage cheese':{kcal:98,p:11,l:4.3,g:3.4,unit:'g'},
+  'Fromage frais nature':{kcal:99,p:7,l:7.8,g:0.6,unit:'g'},
+  'Feta':{kcal:264,p:14,l:21,g:4,unit:'g'},
+  'Mozzarella':{kcal:280,p:17,l:22,g:2.2,unit:'g'},
+  'Parmesan':{kcal:431,p:38,l:29,g:3.2,unit:'g'},
+  'Lait écrémé':{kcal:35,p:3.4,l:0.1,g:4.8,unit:'ml'},
+  'Lait entier':{kcal:61,p:3.2,l:3.3,g:4.7,unit:'ml'},
   'Whey proteine':{kcal:380,p:75,l:5,g:8,unit:'g'},
   'Riz basmati cuit':{kcal:130,p:2.7,l:0.3,g:28,unit:'g'},
+  'Riz complet cuit':{kcal:123,p:2.6,l:0.9,g:26,unit:'g'},
   'Pates cuites':{kcal:131,p:5,l:1,g:25,unit:'g'},
+  'Pates completes cuites':{kcal:140,p:5.5,l:1.2,g:27,unit:'g'},
+  'Quinoa cuit':{kcal:120,p:4.4,l:1.9,g:21,unit:'g'},
   'Flocons avoine':{kcal:370,p:13,l:7,g:60,unit:'g'},
+  'Flocons avoine cuits':{kcal:71,p:2.5,l:1.5,g:12,unit:'g'},
+  'Semoule cuite':{kcal:120,p:4,l:0.5,g:25,unit:'g'},
   'Pain complet':{kcal:247,p:9,l:3,g:44,unit:'g'},
+  'Pain de mie complet':{kcal:263,p:9,l:3.4,g:47,unit:'g'},
   'Patate douce cuite':{kcal:90,p:2,l:0.1,g:21,unit:'g'},
+  'Pomme de terre cuite':{kcal:77,p:2,l:0.1,g:17,unit:'g'},
+  'Lentilles cuites':{kcal:116,p:9,l:0.4,g:20,unit:'g'},
+  'Pois chiches cuits':{kcal:164,p:8.9,l:2.6,g:27,unit:'g'},
+  'Galette de riz':{kcal:387,p:7,l:2.9,g:81,unit:'g'},
+  'Creme de riz':{kcal:361,p:9.4,l:1.4,g:73,unit:'g'},
   'Banane':{kcal:89,p:1.1,l:0.3,g:23,unit:'unit',uw:120},
+  'Pomme':{kcal:52,p:0.3,l:0.2,g:14,unit:'unit',uw:182},
+  'Orange':{kcal:47,p:0.9,l:0.1,g:12,unit:'unit',uw:150},
+  'Kiwi':{kcal:61,p:1.1,l:0.5,g:15,unit:'unit',uw:76},
+  'Mangue':{kcal:60,p:0.8,l:0.4,g:15,unit:'g'},
+  'Fraise':{kcal:32,p:0.7,l:0.3,g:7.7,unit:'g'},
+  'Myrtille':{kcal:57,p:0.7,l:0.3,g:14,unit:'g'},
+  'Raisin':{kcal:69,p:0.7,l:0.2,g:18,unit:'g'},
+  'Ananas':{kcal:50,p:0.5,l:0.1,g:13,unit:'g'},
   'Epinards':{kcal:23,p:2.9,l:0.4,g:3.6,unit:'g'},
   'Brocolis':{kcal:35,p:2.4,l:0.4,g:7,unit:'g'},
+  'Tomate':{kcal:18,p:0.9,l:0.2,g:3.5,unit:'g'},
+  'Concombre':{kcal:15,p:0.7,l:0.1,g:2.5,unit:'g'},
+  'Courgette':{kcal:17,p:1.2,l:0.3,g:3.1,unit:'g'},
+  'Poivron rouge':{kcal:26,p:1,l:0.3,g:5,unit:'g'},
+  'Carotte':{kcal:41,p:0.9,l:0.2,g:9.6,unit:'g'},
+  'Champignon':{kcal:22,p:3.1,l:0.3,g:3.3,unit:'g'},
+  'Haricots verts':{kcal:31,p:1.8,l:0.1,g:7,unit:'g'},
+  'Salade verte':{kcal:15,p:1.2,l:0.2,g:2.1,unit:'g'},
   'Avocat':{kcal:160,p:2,l:15,g:9,unit:'g'},
-  'Amandes':{kcal:579,p:21,l:50,g:22,unit:'g'},
-  'Yaourt grec entier':{kcal:97,p:9,l:5,g:3.6,unit:'g'},
   'Huile olive':{kcal:884,p:0,l:100,g:0,unit:'ml'},
-  'Jambon blanc':{kcal:107,p:17,l:3,g:2,unit:'g'},
-  'Feta':{kcal:264,p:14,l:21,g:4,unit:'g'},
+  'Huile colza':{kcal:884,p:0,l:100,g:0,unit:'ml'},
+  'Beurre':{kcal:717,p:0.5,l:81,g:0.6,unit:'g'},
+  'Amandes':{kcal:579,p:21,l:50,g:22,unit:'g'},
+  'Noix':{kcal:654,p:15,l:65,g:14,unit:'g'},
+  'Cajou':{kcal:553,p:18,l:44,g:30,unit:'g'},
+  'Noisette':{kcal:622,p:17,l:57,g:7.16,unit:'g'},
+  'Beurre de cacahuete':{kcal:588,p:25,l:50,g:20,unit:'g'},
+  'Gel energetique':{kcal:96,p:0,l:0,g:24,unit:'g'},
+  'Boisson isotonique':{kcal:26,p:0,l:0,g:6.5,unit:'ml'},
+  'Barre cereales':{kcal:380,p:8,l:10,g:64,unit:'g'},
+  'Collagene poudre':{kcal:35,p:9,l:0,g:0,unit:'g'},
+  'Miel':{kcal:304,p:0.3,l:0,g:82,unit:'g'},
+  'Sauce tomate':{kcal:29,p:1.5,l:0.4,g:5.4,unit:'ml'},
+  'Cafe':{kcal:2,p:0.3,l:0,g:0,unit:'ml'},
+  'Jus orange':{kcal:45,p:0.7,l:0.2,g:10.4,unit:'ml'},
 };
 
 function dstr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -281,7 +335,7 @@ function FoodRow({slot, row, idx, afw, sel, updRow, delRow, addCF}){
         value={localQty} placeholder="Quantite"
         onFocus={()=>isFocused.current=true}
         onBlur={e=>{isFocused.current=false; updRow(sel,slot.id,idx,'qty',e.target.value);}}
-        onChange={e=>{setLocalQty(e.target.value); updRow(sel,slot.id,idx,'qty',e.target.value);}}/>
+        onChange={e=>setLocalQty(e.target.value)}/>
       <span className="meal-unit">{ul}</span>
       <span className="meal-kcal">{rk>0?rk+' kcal':'—'}</span>
     </div>
@@ -297,7 +351,7 @@ function App(){
   const [days,setDays] = useState(()=>localGet('days',NAS_DAYS));
   const [cf,setCf]     = useState(()=>localGet('foods',NAS_FOODS));
   const [recs,setRecs] = useState(()=>localGet('recipes',{}));
-  const [sess,setSess] = useState(()=>({...NAS_SESSIONS,...localGet('sessions',{})}));
+  const [sess,setSess] = useState(()=>localGet('sessions',NAS_SESSIONS));
   const [corosData,setCorosData] = useState(()=>localGet('coros',DEFAULT_COROS));
   const [badge,setBadge] = useState('');
   const [aiMsgs,setAiMsgs] = useState([]);
@@ -320,7 +374,8 @@ function App(){
   const [apiKey,setApiKey] = useState(()=>localStorage.getItem('hyrox_apikey')||'');
 
   useEffect(()=>{
-    if(!localStorage.getItem('hyrox_days')){localSet('days',NAS_DAYS);localSet('foods',NAS_FOODS);localSet('sessions',NAS_SESSIONS);}
+    if(!localStorage.getItem('hyrox_days')){localSet('days',NAS_DAYS);localSet('foods',NAS_FOODS);}
+    if(!localStorage.getItem('hyrox_sessions')){localSet('sessions',NAS_SESSIONS);}
     flash('✓ Données chargées');
   },[]);
 
@@ -760,7 +815,7 @@ function App(){
       </div>
       <div style={{...card,padding:12}}>
         <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Macros moy.</div>
-        {[{l:'Proteines',k:'p',t:MP.p,c:'var(--blue)'},{l:'Lipides',k:'l',t:MP.l,c:'var(--orange)'}].map(m=>{
+        {[{l:'Proteines',k:'p',t:MP.p,c:'var(--blue)'},{l:'Lipides',k:'l',t:MP.l,c:'var(--orange)'},{l:'Glucides',k:'g',t:Math.round(RK*0.4/4),c:'var(--accent)'}].map(m=>{
           const lg=wk.filter(w=>w.kcal>0);const avg=lg.length?Math.round(lg.reduce((s,w)=>s+gt(w.ds)[m.k],0)/lg.length):0;
           return <div key={m.k} style={{marginBottom:10}}>
             <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:3}}>
@@ -785,12 +840,12 @@ function App(){
       {rtab==='list'&&<div>
         {Object.keys(recs).length===0?<div style={{textAlign:'center',padding:'40px',color:'var(--muted)'}}><div style={{fontSize:32,marginBottom:8}}>📖</div><div>Aucune recette</div></div>
         :<div style={{display:'flex',flexDirection:'column',gap:8}}>
-          {Object.entries(recs).map(([name,r])=>{const pp=r.portions>1?r.portions+'p · '+Math.round(r.totals.kcal/r.portions)+'kcal/p':r.totals.kcal+'kcal';
+          {Object.entries(recs).map(([name,r])=>{const pts=Math.max(1,r.portions||1);const pp=pts>1?pts+'p · '+Math.round(r.totals.kcal/pts)+'kcal/p':r.totals.kcal+'kcal';
             return <div key={name} style={{...card,padding:'10px 12px',display:'flex',alignItems:'center',gap:10}}>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:13,fontWeight:600,marginBottom:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}{r.desc&&<span style={{fontWeight:400,color:'var(--muted)',fontSize:11}}> — {r.desc}</span>}</div>
                 <div style={{display:'flex',gap:6,fontSize:11,...mono,color:'var(--muted)',flexWrap:'wrap'}}>
-                  <span>{pp}</span><span style={{color:'var(--blue)'}}>P:{Math.round(r.totals.p/r.portions)}g</span><span style={{color:'var(--orange)'}}>L:{Math.round(r.totals.l/r.portions)}g</span><span style={{color:'var(--accent)'}}>G:{Math.round(r.totals.g/r.portions)}g</span>
+                  <span>{pp}</span><span style={{color:'var(--blue)'}}>P:{Math.round(r.totals.p/pts)}g</span><span style={{color:'var(--orange)'}}>L:{Math.round(r.totals.l/pts)}g</span><span style={{color:'var(--accent)'}}>G:{Math.round(r.totals.g/pts)}g</span>
                 </div>
               </div>
               <button onClick={()=>delRec(name)} style={{...btnB,padding:'5px 10px'}}>🗑</button>
@@ -832,13 +887,19 @@ function App(){
     const slC=corosData.sleep.score>=70?'var(--accent)':corosData.sleep.score>=50?'var(--orange)':'var(--red)';
     function saveApiKey(k){setApiKey(k);localStorage.setItem('hyrox_apikey',k);}
     return <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 200px)'}}>
-      {!apiKey&&<div style={{background:'var(--oi)',border:'1px solid var(--ob)',borderRadius:8,padding:'8px 11px',marginBottom:8}}>
-        <div style={{fontSize:10,...mono,color:'var(--orange)',marginBottom:5}}>⚠ Clé API Anthropic requise pour le Coach IA</div>
-        <div style={{display:'flex',gap:6}}>
-          <input type="password" placeholder="sk-ant-api03-..." value={apiKey} onChange={e=>saveApiKey(e.target.value)} style={{flex:1,padding:'6px 9px',fontSize:13,borderRadius:6}}/>
+      {!apiKey
+        ?<div style={{background:'var(--oi)',border:'1px solid var(--ob)',borderRadius:8,padding:'8px 11px',marginBottom:8}}>
+          <div style={{fontSize:10,...mono,color:'var(--orange)',marginBottom:5}}>⚠ Clé API Anthropic requise pour le Coach IA</div>
+          <div style={{display:'flex',gap:6}}>
+            <input type="password" placeholder="sk-ant-api03-..." value={apiKey} onChange={e=>saveApiKey(e.target.value)} style={{flex:1,padding:'6px 9px',fontSize:13,borderRadius:6}}/>
+          </div>
+          <div style={{fontSize:9,color:'var(--muted)',marginTop:4,...mono}}>Stockée localement sur votre appareil · console.anthropic.com</div>
         </div>
-        <div style={{fontSize:9,color:'var(--muted)',marginTop:4,...mono}}>Stockée localement sur votre appareil · console.anthropic.com</div>
-      </div>}
+        :<div style={{display:'flex',alignItems:'center',gap:8,padding:'5px 10px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,marginBottom:8}}>
+          <span style={{fontSize:10,...mono,color:'var(--accent)',flex:1}}>✓ API connectée · ...{apiKey.slice(-6)}</span>
+          <button onClick={()=>saveApiKey('')} style={{...btnB,padding:'3px 9px',fontSize:10}}>Modifier</button>
+        </div>
+      }
       <div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:8,padding:'7px 11px',marginBottom:8,fontSize:11,...mono,color:'var(--blue)'}}>
         {selLabel} · {sSes?'Seance':'Repos'} · {sT.kcal}/{sTgt}kcal{sB>0?' +'+sB+'🔥':''} · P:{sT.p}g
       </div>
