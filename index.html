@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Coach Dashboard</title>
+<meta name="theme-color" content="#c8f135">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Coach HYROX">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0f0f0f;--surface:#1a1a1a;--surface2:#222;--border:#2e2e2e;
+  --text:#f0f0f0;--muted:#666;--accent:#c8f135;--orange:#f1a035;--blue:#35d4f1;--red:#ff4d4d;
+  --si:rgba(53,212,241,.08);--sb:rgba(53,212,241,.25);
+  --gi:rgba(200,241,53,.08);--gb:rgba(200,241,53,.25);
+  --oi:rgba(241,160,53,.08);--ob:rgba(241,160,53,.25);
+  --nav:58px;
+}
+*{box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overscroll-behavior:none;}
+button{font-family:inherit;cursor:pointer;}
+input,select{
+  font-family:inherit;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  color:var(--text);
+  border-radius:6px;
+  outline:none;
+  /* Anti-zoom iOS — min 16px */
+  font-size:16px;
+}
+input:focus,select:focus{border-color:var(--accent);}
+select option{background:var(--surface2);}
+.mono{font-family:'JetBrains Mono',monospace;}
+
+/* Nav */
+.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav);background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom,0px);}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;color:var(--muted);font-size:9px;font-family:'Inter',sans-serif;padding:4px 0;}
+.ni.on{color:var(--accent);}
+.ni .ic{font-size:20px;line-height:1;}
+
+/* Layout */
+.page{padding:10px 12px calc(var(--nav) + 16px + env(safe-area-inset-bottom,0px));max-width:100%;}
+
+/* Cal */
+.cal-hdr{display:flex;align-items:center;padding:10px 14px;gap:8px;cursor:pointer;background:var(--surface);border-bottom:1px solid var(--border);}
+.cal-body{overflow:hidden;transition:max-height .3s ease;background:var(--surface);border-bottom:1px solid var(--border);}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;}
+
+/* Header */
+.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;}
+
+/* ── Repas : layout une ligne par aliment ── */
+.meal-row{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:6px 8px;
+  border-bottom:1px solid var(--border);
+}
+.meal-row-top{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.meal-row-top select{
+  flex:1;
+  font-size:15px;
+  padding:5px 6px;
+  border-radius:6px;
+  min-width:0;
+}
+.meal-row-bottom{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.meal-row-bottom input[type=number]{
+  width:80px;
+  font-size:15px;
+  padding:5px 8px;
+  text-align:center;
+  border-radius:6px;
+  font-family:'JetBrains Mono',monospace;
+}
+.meal-unit{
+  font-size:11px;
+  color:var(--muted);
+  font-family:'JetBrains Mono',monospace;
+  min-width:24px;
+}
+.meal-kcal{
+  font-size:12px;
+  color:var(--accent);
+  font-weight:600;
+  font-family:'JetBrains Mono',monospace;
+  margin-left:auto;
+}
+.meal-del{
+  background:none;
+  border:none;
+  cursor:pointer;
+  color:var(--muted);
+  font-size:16px;
+  padding:2px 4px;
+  flex-shrink:0;
+}
+
+/* Meals grid 2 colonnes */
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:400px){.mg{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+<script type="text/babel">
+const {useState,useEffect,useRef} = React;
+
+const TK = 1965, RK = 1665, MP = {p:177,l:88};
+
+const NAS_SESSIONS = {
+  "2026-05-30":{title:"Hybrid Fitness",type:"HIIT",duree:40,statut:"Fait",source:"COROS",calories:521},
+  "2026-05-31":{title:"Hyrox Solo + DUO",type:"Hyrox Coach",duree:98,statut:"Fait",source:"COROS",calories:836},
+  "2026-06-01":{title:"Course Pecquencourt",type:"Cardio",duree:35,statut:"Fait",source:"COROS",calories:438},
+  "2026-06-02":{title:"Musculation",type:"Force",duree:84,statut:"Fait",source:"COROS",calories:324},
+  "2026-06-03":{title:"Test FC max",type:"Cardio",duree:33,statut:"Fait",source:"COROS",calories:422},
+  "2026-06-04":{title:"Cardio Int.",type:"Cardio",duree:65,statut:"Fait",source:"COROS",calories:625}
+};
+const DEFAULT_COROS = {recovery:99,restingHR:50,hrvBaseline:42,sleep:{score:67,duration:'5h42',deep:'1h06',rem:'1h44'},lastSync:'2026-06-05'};
+const NAS_FOODS = {
+  "Margarine":{kcal:720,p:0,l:80,g:0,unit:"g"},
+  "Confiture ss sucre":{kcal:89,p:0,l:0,g:21.7,unit:"g"},
+  "Creme de riz":{kcal:361,p:9.4,l:1.4,g:73,unit:"g"},
+  "Native whey Isolat":{kcal:370,p:81.2,l:1.45,g:7.2,unit:"g"},
+  "Gazpacho":{kcal:40,p:0.9,l:2.2,g:3.5,unit:"ml"},
+  "Pomme de terre":{kcal:77,p:1.8,l:0.34,g:0.86,unit:"g"},
+  "Filet poulet Fleury Michon":{kcal:425,p:21,l:0.5,g:0.5,unit:"g"},
+  "Petit suisse 0%":{kcal:56,p:9.7,l:0.5,g:4.1,unit:"g"},
+  "Noisette":{kcal:622,p:17,l:57,g:7.16,unit:"g"}
+};
+const NAS_DAYS = {
+  "2026-06-03":{meals:{matin:[{food:"Skyr nature",qty:45},{food:"Oeufs entiers",qty:4},{food:"Confiture ss sucre",qty:15},{food:"Pain complet",qty:70}],midi:[{food:"Native whey Isolat",qty:30},{food:"Poulet blanc cuit",qty:170},{food:"Huile olive",qty:15},{food:"Pomme de terre",qty:110}],collation:[{food:"Creme de riz",qty:50},{food:"Banane",qty:1}],soir:[{food:"Pates cuites",qty:30},{food:"Amandes",qty:30},{food:"Filet poulet Fleury Michon",qty:120},{food:"Petit suisse 0%",qty:240}]},cal:780},
+  "2026-06-04":{meals:{matin:[{food:"Skyr nature",qty:45},{food:"Amandes",qty:10},{food:"Noisette",qty:10},{food:"Oeufs entiers",qty:4},{food:"Pain complet",qty:50},{food:"Banane",qty:0.5}],midi:[{food:"Poulet blanc cuit",qty:120},{food:"Pates cuites",qty:80}],collation:[],soir:[]}}
+};
+
+function localGet(k,fb={}){try{const i=localStorage.getItem('hyrox_'+k);return i?JSON.parse(i):fb;}catch{return fb;}}
+function localSet(k,d){localStorage.setItem('hyrox_'+k,JSON.stringify(d));}
+
+const MEALS=[{id:'matin',l:'Matin',ic:'☀️'},{id:'midi',l:'Midi',ic:'🌤️'},{id:'collation',l:'Collation',ic:'🍎'},{id:'soir',l:'Soir',ic:'🌙'}];
+const TABS=[{id:'nutrition',ic:'🍽',l:'Nutrition'},{id:'training',ic:'🏋️',l:'Séances'},{id:'analytics',ic:'📊',l:'Stats'},{id:'recettes',ic:'📖',l:'Recettes'},{id:'coach',ic:'🤖',l:'Coach'}];
+const TYPES=['Cardio','Force','HIIT','Hyrox Coach','Mobilité','Autre'];
+const STATUTS=['À faire','Fait','Modifié','Annulé'];
+
+const BF={
+  'Poulet blanc cuit':{kcal:165,p:31,l:3.6,g:0,unit:'g'},
+  'Saumon cuit':{kcal:208,p:20,l:13,g:0,unit:'g'},
+  'Thon en boite':{kcal:116,p:26,l:1,g:0,unit:'g'},
+  'Oeufs entiers':{kcal:155,p:13,l:11,g:1,unit:'unit',uw:60},
+  'Blancs oeufs':{kcal:52,p:11,l:0.2,g:1,unit:'unit',uw:35},
+  'Boeuf hache 5%':{kcal:137,p:21,l:5,g:0,unit:'g'},
+  'Fromage blanc 0%':{kcal:45,p:8,l:0.2,g:3.5,unit:'g'},
+  'Skyr nature':{kcal:65,p:11,l:0.2,g:4,unit:'g'},
+  'Whey proteine':{kcal:380,p:75,l:5,g:8,unit:'g'},
+  'Riz basmati cuit':{kcal:130,p:2.7,l:0.3,g:28,unit:'g'},
+  'Pates cuites':{kcal:131,p:5,l:1,g:25,unit:'g'},
+  'Flocons avoine':{kcal:370,p:13,l:7,g:60,unit:'g'},
+  'Pain complet':{kcal:247,p:9,l:3,g:44,unit:'g'},
+  'Patate douce cuite':{kcal:90,p:2,l:0.1,g:21,unit:'g'},
+  'Banane':{kcal:89,p:1.1,l:0.3,g:23,unit:'unit',uw:120},
+  'Epinards':{kcal:23,p:2.9,l:0.4,g:3.6,unit:'g'},
+  'Brocolis':{kcal:35,p:2.4,l:0.4,g:7,unit:'g'},
+  'Avocat':{kcal:160,p:2,l:15,g:9,unit:'g'},
+  'Amandes':{kcal:579,p:21,l:50,g:22,unit:'g'},
+  'Yaourt grec entier':{kcal:97,p:9,l:5,g:3.6,unit:'g'},
+  'Huile olive':{kcal:884,p:0,l:100,g:0,unit:'ml'},
+  'Jambon blanc':{kcal:107,p:17,l:3,g:2,unit:'g'},
+  'Feta':{kcal:264,p:14,l:21,g:4,unit:'g'},
+};
+
+function dstr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function today(){return dstr(new Date());}
+function gew(f,q){if(!f||!q||q<=0)return 0;return f.unit==='unit'?q*(f.uw||100):q;}
+function totals(meals,foods){
+  let k=0,p=0,l=0,g=0;
+  MEALS.forEach(s=>{(meals[s.id]||[]).forEach(r=>{const f=foods[r.food];if(f){const gr=gew(f,r.qty);if(gr>0){const x=gr/100;k+=f.kcal*x;p+=f.p*x;l+=f.l*x;g+=f.g*x;}}});});
+  return{kcal:Math.round(k),p:Math.round(p),l:Math.round(l),g:Math.round(g)};
+}
+
+function Bar({v,max,c='var(--accent)'}){
+  return <div style={{height:4,background:'var(--border)',borderRadius:99,overflow:'hidden'}}>
+    <div style={{height:'100%',width:Math.min((v/max)*100,100)+'%',background:v>max?'var(--red)':c,borderRadius:99,transition:'width .3s'}}/>
+  </div>;
+}
+
+// FoodRow: défini hors App pour référence stable (évite remount iOS clavier).
+function FoodRow({slot, row, idx, afw, sel, updRow, delRow}){
+  const f = afw[row.food];
+  const ul = f?(f.ul||(f.unit==='unit'?'u':f.unit==='ml'?'ml':'g')):'g';
+  const [localQty, setLocalQty] = useState(row.qty||'');
+  const [fsearch, setFsearch] = useState(row.food||'');
+  const [fdrop, setFdrop] = useState(false);
+  const isFocused = useRef(false);
+  useEffect(()=>{ if(!isFocused.current) setLocalQty(row.qty||''); },[row.qty]);
+  useEffect(()=>{ setFsearch(row.food||''); },[row.food]);
+  const foodKeys = Object.keys(afw);
+  const q = fsearch.toLowerCase().replace('[r] ','');
+  const filtered = q ? foodKeys.filter(x=>x.toLowerCase().replace('[r] ','').includes(q)) : foodKeys;
+  const sorted = [...filtered.filter(x=>x.startsWith('[R]')).sort(),...filtered.filter(x=>!x.startsWith('[R]')).sort()].slice(0,25);
+  const rk = f&&+localQty>0 ? Math.round(f.kcal*gew(f,+localQty)/100) : 0;
+  return <div className="meal-row" style={{position:'relative',zIndex:fdrop?100:1}}>
+    <div className="meal-row-top">
+      <div style={{flex:1,position:'relative'}}>
+        <input value={fsearch} inputMode="text" placeholder="Rechercher un aliment..."
+          onFocus={()=>setFdrop(true)}
+          onBlur={()=>setTimeout(()=>setFdrop(false),150)}
+          onChange={e=>{setFsearch(e.target.value);setFdrop(true);}}
+          style={{width:'100%',fontSize:15,padding:'5px 6px',borderRadius:6}}/>
+        {fdrop&&sorted.length>0&&<div style={{position:'absolute',top:'calc(100% + 2px)',left:0,right:0,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,zIndex:999,maxHeight:180,overflowY:'auto',boxShadow:'0 6px 16px rgba(0,0,0,.6)'}}>
+          {sorted.map(x=>(
+            <div key={x}
+              onPointerDown={e=>{e.preventDefault();const disp=x.startsWith('[R]')?x.replace('[R] ',''):x;setFsearch(disp);updRow(sel,slot.id,idx,'food',x);setFdrop(false);}}
+              style={{padding:'8px 10px',fontSize:13,cursor:'pointer',borderBottom:'1px solid var(--border)',color:x.startsWith('[R]')?'var(--accent)':'var(--text)'}}>
+              {x.startsWith('[R]')?'⭐ '+x.replace('[R] ',''):x}
+            </div>
+          ))}
+        </div>}
+      </div>
+      <button className="meal-del" onClick={()=>delRow(sel,slot.id,idx)}>✕</button>
+    </div>
+    <div className="meal-row-bottom">
+      <input type="number" inputMode="decimal" min={0} step={f?.unit==='unit'?1:5}
+        value={localQty} placeholder="Quantite"
+        onFocus={()=>isFocused.current=true}
+        onBlur={e=>{isFocused.current=false; updRow(sel,slot.id,idx,'qty',e.target.value);}}
+        onChange={e=>{setLocalQty(e.target.value); updRow(sel,slot.id,idx,'qty',e.target.value);}}/>
+      <span className="meal-unit">{ul}</span>
+      <span className="meal-kcal">{rk>0?rk+' kcal':'—'}</span>
+    </div>
+  </div>;
+}
+
+function App(){
+  const [tab,setTab]   = useState('nutrition');
+  const [sel,setSel]   = useState(today());
+  const [vy,setVy]     = useState(new Date().getFullYear());
+  const [vm,setVm]     = useState(new Date().getMonth());
+  const [calOpen,setCal] = useState(false);
+  const [days,setDays] = useState(()=>localGet('days',NAS_DAYS));
+  const [cf,setCf]     = useState(()=>localGet('foods',NAS_FOODS));
+  const [recs,setRecs] = useState(()=>localGet('recipes',{}));
+  const [sess,setSess] = useState(()=>({...NAS_SESSIONS,...localGet('sessions',{})}));
+  const [corosData,setCorosData] = useState(()=>localGet('coros',DEFAULT_COROS));
+  const [badge,setBadge] = useState('');
+  const [aiMsgs,setAiMsgs] = useState([]);
+  const [aiIn,setAiIn] = useState('');
+  const [aiLoad,setAiLoad] = useState(false);
+  const [addFood,setAF] = useState(false);
+  const [nf,setNf]     = useState({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});
+  const [rtab,setRtab] = useState('list');
+  const [nr,setNr]     = useState({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});
+  const [addSess,setAS] = useState(false);
+  const [editSess,setES] = useState(null);
+  const [impSess,setImpSess] = useState(false);
+  const [impText,setImpText] = useState('');
+  const emptyTab = ()=>({cols:['S1','S2','S3'],rows:[{ex:'',vals:['','','']}]});
+  const [ns,setNs]     = useState({date:'',title:'',type:'Cardio',duree:60,statut:'À faire',calories:0,tableau:emptyTab()});
+  const chatRef        = useRef(null);
+  const fileRef        = useRef(null);
+  const aiInputRef     = useRef(null);
+
+  useEffect(()=>{
+    if(!localStorage.getItem('hyrox_days')){localSet('days',NAS_DAYS);localSet('foods',NAS_FOODS);localSet('sessions',NAS_SESSIONS);}
+    flash('✓ Données chargées');
+  },[]);
+
+  function flash(m){setBadge(m);setTimeout(()=>setBadge(''),3000);}
+
+  const af={...BF,...cf};
+  const afw={...af};
+  Object.entries(recs).forEach(([n,r])=>{
+    if(r.totals&&r.portions) afw['[R] '+n]={kcal:Math.round(r.totals.kcal/r.portions),p:Math.round(r.totals.p/r.portions*10)/10,l:Math.round(r.totals.l/r.portions*10)/10,g:Math.round(r.totals.g/r.portions*10)/10,unit:'unit',uw:1,ul:'portion(s)'};
+  });
+
+  const gdt  = ds=>sess[ds]?'notion':'rest';
+  const istr = ds=>{const t=gdt(ds);return t==='notion'||t==='training';};
+  const gtgt = ds=>istr(ds)?TK:RK;
+  const gm   = ds=>days[ds]?.meals||{matin:[],midi:[],collation:[],soir:[]};
+  const gt   = ds=>totals(gm(ds),afw);
+  const gb   = ds=>sess[ds]?.calories||days[ds]?.cal||0;
+
+  function saveDay(dd,ds){setDays(dd);localSet('days',dd);}
+  function addRow(ds,mid){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].meals[mid]=[...(dd[ds].meals[mid]||[]),{food:'',qty:0}];saveDay(dd,ds);}
+  function updRow(ds,mid,idx,fld,val){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};const row=dd[ds].meals[mid][idx];if(!row)return;if(fld==='food'){row.food=val;row.qty=0;}else row.qty=parseFloat(val)||0;saveDay(dd,ds);}
+  function delRow(ds,mid,idx){const dd=JSON.parse(JSON.stringify(days));dd[ds].meals[mid].splice(idx,1);saveDay(dd,ds);}
+  function setCalB(ds,v){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].cal=v;saveDay(dd,ds);}
+  function saveCf(){if(!nf.name||!nf.kcal)return;const c={...cf,[nf.name]:{kcal:+nf.kcal,p:+nf.p||0,l:+nf.l||0,g:+nf.g||0,unit:nf.unit}};setCf(c);localSet('foods',c);flash('✓ '+nf.name);setNf({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});setAF(false);}
+  function rTotals(ings){let k=0,p=0,l=0,g=0;ings.forEach(r=>{const f=af[r.food];if(f&&r.qty>0){const gr=gew(f,r.qty);const x=gr/100;k+=f.kcal*x;p+=f.p*x;l+=f.l*x;g+=f.g*x;}});return{kcal:Math.round(k),p:Math.round(p),l:Math.round(l),g:Math.round(g)};}
+  function saveRec(){if(!nr.name)return;const ings=nr.ings.filter(i=>i.food&&i.qty>0);if(!ings.length)return;const t=rTotals(ings);const r={...recs,[nr.name]:{portions:nr.portions,desc:nr.desc,ingredients:ings,totals:t}};setRecs(r);localSet('recipes',r);flash('✓ '+nr.name);setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});setRtab('list');}
+  function delRec(n){const r={...recs};delete r[n];setRecs(r);localSet('recipes',r);}
+  function saveSess(s){setSess(s);localSet('sessions',s);flash('✓ Séances');}
+  function saveNewSess(){
+    if(!ns.title||!ns.date)return;
+    const sd={title:ns.title,type:ns.type,duree:+ns.duree,statut:ns.statut,source:'Manuel',calories:+ns.calories||0};
+    if(ns.type==='Force')sd.tableau=ns.tableau;
+    saveSess({...sess,[ns.date]:sd});
+    if(+ns.calories>0)setCalB(ns.date,+ns.calories);
+    setNs({date:'',title:'',type:'Cardio',duree:60,statut:'À faire',calories:0,tableau:emptyTab()});
+    setAS(false);
+  }
+  function updSess(ds){
+    saveSess({...sess,[ds]:{...editSess}});
+    if(+editSess.calories>0)setCalB(ds,+editSess.calories);
+    setES(null);
+  }
+  function delSess(ds){const s={...sess};delete s[ds];saveSess(s);}
+
+  function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess,coros:corosData},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();flash('✓ Exporté');}
+  function importData(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=evt=>{try{const d=JSON.parse(evt.target.result);if(d.days){setDays(d.days);localSet('days',d.days);}if(d.foods){setCf(d.foods);localSet('foods',d.foods);}if(d.recipes){setRecs(d.recipes);localSet('recipes',d.recipes);}if(d.sessions){setSess(d.sessions);localSet('sessions',d.sessions);}if(d.coros){setCorosData(d.coros);localSet('coros',d.coros);}flash('Import OK');}catch{alert('Erreur JSON');}};reader.readAsText(file);}
+
+  async function sendAI(){
+    if(!aiIn.trim())return;
+    const msg=aiIn.trim();setAiIn('');
+    setTimeout(()=>{if(aiInputRef.current)aiInputRef.current.focus();},50);
+    const msgs=[...aiMsgs,{role:'user',content:msg}];
+    setAiMsgs(msgs);setAiLoad(true);
+    setTimeout(()=>{if(chatRef.current)chatRef.current.scrollTop=chatRef.current.scrollHeight;},50);
+    try{
+      const t=gt(sel),tgt=gtgt(sel),s=sess[sel];
+      const sys='Tu es Coach HYROX. Jour:'+sel+' | '+tgt+'kcal | '+t.kcal+'kcal conso | P:'+t.p+'g L:'+t.l+'g G:'+t.g+'g'+(s?' | Seance:'+s.title:'')+(gb(sel)>0?' | '+gb(sel)+'kcal brulees':'')+' | COROS: Recup '+corosData.recovery+'% FC repos '+corosData.restingHR+' HRV '+corosData.hrvBaseline+' Sommeil '+corosData.sleep.score+'/100. Reponds en francais, max 120 mots.';
+      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:sys,messages:msgs})});
+      const data=await res.json();
+      setAiMsgs([...msgs,{role:'assistant',content:data.content?.[0]?.text||'Erreur.'}]);
+    }catch{setAiMsgs([...msgs,{role:'assistant',content:'Erreur connexion.'}]);}
+    setAiLoad(false);
+    setTimeout(()=>{if(chatRef.current)chatRef.current.scrollTop=chatRef.current.scrollHeight;},100);
+  }
+
+  const sT=gt(sel),sTgt=gtgt(sel),sSes=sess[sel],sB=gb(sel),sAdj=sTgt+sB,sRem=sAdj-sT.kcal;
+  const wk=Array.from({length:7},(_,i)=>{const t=new Date(),dw=t.getDay(),mo=new Date(t);mo.setDate(t.getDate()+(dw===0?-6:1-dw));const d=new Date(mo);d.setDate(mo.getDate()+i);const ds=dstr(d);return{ds,day:['Lu','Ma','Me','Je','Ve','Sa','Di'][i],kcal:gt(ds).kcal,target:gtgt(ds),isTr:istr(ds)};});
+  const selLabel=new Date(sel+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+  const mono={fontFamily:"'JetBrains Mono',monospace"};
+  const card={background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10};
+  const btnB={border:'1px solid var(--border)',borderRadius:6,background:'var(--surface2)',color:'var(--muted)',padding:'5px 11px',fontSize:11,...mono,cursor:'pointer'};
+  const btnG={...btnB,borderColor:'var(--accent)',color:'var(--accent)',background:'var(--gi)'};
+
+  function Cal(){
+    const months=['Jan','Fev','Mar','Avr','Mai','Juin','Juil','Aou','Sep','Oct','Nov','Dec'];
+    const fd=new Date(vy,vm,1).getDay(),off=fd===0?6:fd-1,dim=new Date(vy,vm+1,0).getDate();
+    const cells=[];
+    ['Lu','Ma','Me','Je','Ve','Sa','Di'].forEach(d=>cells.push(<div key={'w'+d} style={{textAlign:'center',fontSize:9,color:'var(--muted)',paddingBottom:3,...mono}}>{d}</div>));
+    for(let i=0;i<off;i++)cells.push(<div key={'e'+i}/>);
+    for(let d=1;d<=dim;d++){
+      const ds=vy+'-'+String(vm+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      const isT=ds===today(),isSel=ds===sel,hasSes=!!sess[ds],hasDat=gt(ds).kcal>0;
+      let bg='transparent',br='transparent',tc='var(--text)';
+      if(isT){bg='var(--accent)';tc='#000';}else if(isSel){br='var(--accent)';}else if(hasSes){bg='rgba(53,212,241,.1)';}
+      cells.push(<div key={ds} onClick={()=>{setSel(ds);setCal(false);}} style={{aspectRatio:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',borderRadius:6,cursor:'pointer',border:'1px solid '+br,background:bg,color:tc,fontSize:11,fontWeight:600,gap:2,position:'relative'}}>
+        <span>{d}</span>
+        {hasDat&&<div style={{width:3,height:3,borderRadius:'50%',background:isT?'#000':'var(--blue)'}}/>}
+        {hasSes&&!isT&&<div style={{position:'absolute',top:2,right:2,width:4,height:4,borderRadius:'50%',background:'var(--blue)'}}/>}
+      </div>);
+    }
+    return <div style={{padding:'0 10px 10px'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+        <button onClick={()=>{let m=vm-1,y=vy;if(m<0){m=11;y--;}setVm(m);setVy(y);}} style={{width:28,height:28,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)',borderRadius:6,fontSize:14}}>&#8249;</button>
+        <span style={{fontSize:12,fontWeight:600,...mono}}>{months[vm]} {vy}</span>
+        <button onClick={()=>{let m=vm+1,y=vy;if(m>11){m=0;y++;}setVm(m);setVy(y);}} style={{width:28,height:28,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)',borderRadius:6,fontSize:14}}>&#8250;</button>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2}}>{cells}</div>
+    </div>;
+  }
+
+  function Nutrition(){
+    const dtC=sSes?{bg:'var(--si)',tc:'var(--blue)',b:'var(--sb)'}:{bg:'var(--surface2)',tc:'var(--muted)',b:'var(--border)'};
+    return <div>
+      <div style={{...card,padding:'10px 12px',marginBottom:10}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+          <div style={{fontSize:14,fontWeight:600,flex:1,textTransform:'capitalize'}}>{new Date(sel+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
+          <span style={{fontSize:10,padding:'2px 8px',borderRadius:20,background:dtC.bg,color:dtC.tc,border:'1px solid '+dtC.b,...mono}}>{sSes?'SEANCE':'REPOS'}</span>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:8}}>
+          {[{v:sT.kcal,l:'Consomme',c:sT.kcal>sAdj?'var(--red)':'var(--accent)'},{v:sAdj,l:sB>0?'Obj.ajuste':'Objectif',c:'var(--orange)'},{v:Math.abs(sRem),l:sRem>=0?'Restantes':'Surplus',c:sRem<0?'var(--red)':'var(--text)'}].map((k,i)=>(
+            <div key={i} style={{textAlign:'center',background:'var(--surface2)',borderRadius:8,padding:'7px 4px'}}>
+              <div style={{fontSize:17,fontWeight:700,...mono,color:k.c}}>{k.v}</div>
+              <div style={{fontSize:9,color:'var(--muted)'}}>{k.l}</div>
+            </div>
+          ))}
+        </div>
+        <Bar v={sT.kcal} max={sAdj}/>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:5,marginTop:8}}>
+          {[{l:'PROT',v:sT.p,t:MP.p,c:'var(--blue)'},{l:'LIP',v:sT.l,t:MP.l,c:'var(--orange)'},{l:'GLUC',v:sT.g,t:Math.round(sAdj*0.4/4),c:'var(--accent)'}].map(m=>(
+            <div key={m.l} style={{background:'var(--surface2)',borderRadius:7,padding:'5px 6px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:9,marginBottom:2}}>
+                <span style={{color:m.c,fontWeight:600,...mono}}>{m.l}</span>
+                <span style={{color:'var(--muted)',...mono}}>{m.v}g</span>
+              </div>
+              <Bar v={m.v} max={m.t} c={m.c}/>
+              <div style={{fontSize:8,color:'var(--muted)',...mono,textAlign:'right',marginTop:1}}>/{m.t}g</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Séance + calories brûlées */}
+      <div style={{...card,padding:'10px 12px',marginBottom:10}}>
+        {sSes&&<div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:7,padding:'7px 10px',marginBottom:8,display:'flex',gap:8,alignItems:'center'}}>
+          <span style={{fontSize:16}}>🏋️</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:12,fontWeight:600,marginBottom:2}}>{sSes.title}</div>
+            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+              {[sSes.type,sSes.duree+'min',sSes.calories>0?'🔥'+sSes.calories+'kcal':null].filter(Boolean).map((t,i)=>(
+                <span key={i} style={{fontSize:9,padding:'1px 5px',borderRadius:4,background:'var(--surface2)',color:'var(--muted)',border:'1px solid var(--border)',...mono}}>{t}</span>
+              ))}
+            </div>
+          </div>
+        </div>}
+        <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--surface2)',borderRadius:7,padding:'7px 10px'}}>
+          <span style={{fontSize:16}}>🔥</span>
+          <span style={{fontSize:12,color:'var(--muted)',flex:1}}>Calories brulees</span>
+          <input type="number" inputMode="decimal" min={0} step={10}
+            value={sSes?(sSes.calories>0?sSes.calories:''):(days[sel]?.cal||'')}
+            placeholder="0"
+            onChange={e=>{
+              const v=+e.target.value||0;
+              setCalB(sel,v);
+              if(sSes){const s={...sess,[sel]:{...sSes,calories:v}};setSess(s);localSet('sessions',s);}
+            }}
+            style={{width:90,padding:'5px 8px',textAlign:'center',...mono}}/>
+          <span style={{fontSize:11,color:'var(--muted)',...mono}}>kcal</span>
+          {sSes&&<span style={{fontSize:9,color:'var(--blue)',...mono}}>⚡séance</span>}
+        </div>
+      </div>
+
+      {/* Repas — 2 colonnes */}
+      <div className="mg">
+        {MEALS.map(slot=>{
+          const rows=gm(sel)[slot.id]||[];
+          const mk=Math.round(rows.reduce((s,r)=>{const f=afw[r.food];if(!f||!r.qty)return s;const g=gew(f,r.qty);return s+(g>0?f.kcal*g/100:0);},0));
+          return <div key={slot.id} style={{...card,overflow:'visible'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 10px',borderBottom:'1px solid var(--border)',background:'var(--surface2)',borderRadius:'10px 10px 0 0'}}>
+              <span style={{fontSize:13,fontWeight:600}}>{slot.ic} {slot.l}</span>
+              <span style={{fontSize:12,color:'var(--accent)',fontWeight:600,...mono}}>{mk>0?mk+' kcal':'—'}</span>
+            </div>
+            {rows.map((row,idx)=><FoodRow key={slot.id+'-'+idx} slot={slot} row={row} idx={idx} afw={afw} sel={sel} updRow={updRow} delRow={delRow}/>)}
+            <div style={{padding:'6px 8px'}}>
+              <button onClick={()=>addRow(sel,slot.id)} style={{width:'100%',padding:'6px',fontSize:12,border:'1px dashed var(--border)',borderRadius:6,background:'none',color:'var(--muted)',cursor:'pointer'}}>
+                + Ajouter un aliment
+              </button>
+            </div>
+          </div>;
+        })}
+      </div>
+
+      {/* Aliment custom */}
+      <div style={{marginTop:10}}>
+        {!addFood
+          ?<button onClick={()=>setAF(true)} style={{...btnB,width:'100%',padding:'10px',textAlign:'center',fontSize:12}}>+ Aliment personnalise</button>
+          :<div style={{...card,padding:12}}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Nouvel aliment</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:8}}>
+              {[{k:'name',ph:'Nom',full:true},{k:'kcal',ph:'Kcal/100g'},{k:'p',ph:'Proteines g'},{k:'l',ph:'Lipides g'},{k:'g',ph:'Glucides g'}].map(x=>(
+                <div key={x.k} style={{gridColumn:x.full?'1/-1':undefined}}>
+                  <input type={x.k==='name'?'text':'number'} inputMode={x.k==='name'?'text':'decimal'} placeholder={x.ph} value={nf[x.k]} onChange={e=>setNf(p=>({...p,[x.k]:e.target.value}))} style={{width:'100%',padding:'7px 9px'}}/>
+                </div>
+              ))}
+            </div>
+            <div style={{display:'flex',gap:6}}>
+              <button onClick={saveCf} style={{...btnG,flex:1,padding:'8px',textAlign:'center'}}>Sauvegarder</button>
+              <button onClick={()=>setAF(false)} style={{...btnB,padding:'8px 14px'}}>Annuler</button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>;
+  }
+
+  function TableauEditor({tab, onTab}){
+    const si={fontSize:12,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)',borderRadius:4,outline:'none'};
+    return <div>
+      <div style={{overflowX:'auto',borderRadius:7,border:'1px solid var(--border)'}}>
+        <table style={{borderCollapse:'collapse',fontSize:12}}>
+          <thead>
+            <tr style={{background:'var(--surface2)'}}>
+              <th style={{padding:'6px 8px',textAlign:'left',borderBottom:'1px solid var(--border)',fontSize:10,color:'var(--muted)',fontWeight:600,minWidth:130,...mono}}>EXERCICE</th>
+              {tab.cols.map((col,ci)=>(
+                <th key={ci} style={{padding:'3px 4px',borderBottom:'1px solid var(--border)',minWidth:72}}>
+                  <div style={{display:'flex',alignItems:'center',gap:2,justifyContent:'center'}}>
+                    <input value={col} inputMode="text"
+                      onChange={e=>{const t=JSON.parse(JSON.stringify(tab));t.cols[ci]=e.target.value;onTab(t);}}
+                      style={{...si,width:46,padding:'3px 4px',textAlign:'center',fontSize:11,...mono}}/>
+                    {tab.cols.length>1&&<button onClick={()=>{const t=JSON.parse(JSON.stringify(tab));t.cols.splice(ci,1);t.rows=t.rows.map(r=>{const v=[...r.vals];v.splice(ci,1);return{...r,vals:v};});onTab(t);}} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:11,padding:'1px 2px',lineHeight:1}}>✕</button>}
+                  </div>
+                </th>
+              ))}
+              <th style={{padding:'3px 4px',borderBottom:'1px solid var(--border)',width:32}}>
+                <button onClick={()=>{const t=JSON.parse(JSON.stringify(tab));t.cols.push('S'+(t.cols.length+1));t.rows=t.rows.map(r=>({...r,vals:[...r.vals,'']}));onTab(t);}} style={{...btnG,padding:'2px 6px',fontSize:14,lineHeight:1}}>+</button>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {tab.rows.map((row,ri)=>(
+              <tr key={ri} style={{borderBottom:'1px solid var(--border)'}}>
+                <td style={{padding:'3px 4px'}}>
+                  <input value={row.ex} onChange={e=>{const t=JSON.parse(JSON.stringify(tab));t.rows[ri].ex=e.target.value;onTab(t);}} placeholder="Exercice" inputMode="text" style={{...si,width:120,padding:'4px 6px',fontSize:12}}/>
+                </td>
+                {row.vals.map((val,ci)=>(
+                  <td key={ci} style={{padding:'3px 4px'}}>
+                    <input value={val} onChange={e=>{const t=JSON.parse(JSON.stringify(tab));t.rows[ri].vals[ci]=e.target.value;onTab(t);}} placeholder="—" inputMode="text" style={{...si,width:66,padding:'4px 6px',textAlign:'center',fontSize:12,...mono}}/>
+                  </td>
+                ))}
+                <td style={{padding:'3px 4px'}}>
+                  <button onClick={()=>{const t=JSON.parse(JSON.stringify(tab));t.rows.splice(ri,1);if(t.rows.length===0)t.rows=[{ex:'',vals:new Array(t.cols.length).fill('')}];onTab(t);}} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:14,padding:'2px 4px'}}>🗑</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <button onClick={()=>{const t=JSON.parse(JSON.stringify(tab));t.rows.push({ex:'',vals:new Array(t.cols.length).fill('')});onTab(t);}} style={{width:'100%',padding:'5px',fontSize:11,border:'1px dashed var(--border)',borderRadius:6,background:'none',color:'var(--muted)',cursor:'pointer',marginTop:5}}>+ Exercice</button>
+    </div>;
+  }
+
+  function TableauView({tab}){
+    const rows=tab.rows.filter(r=>r.ex);
+    if(!rows.length)return null;
+    return <div style={{overflowX:'auto',marginTop:8,borderRadius:6,border:'1px solid var(--border)'}}>
+      <table style={{borderCollapse:'collapse',fontSize:11,width:'100%'}}>
+        <thead>
+          <tr style={{background:'var(--surface2)'}}>
+            <th style={{padding:'4px 8px',textAlign:'left',color:'var(--muted)',fontWeight:600,fontSize:10,...mono}}>EXERCICE</th>
+            {tab.cols.map((c,i)=><th key={i} style={{padding:'4px 6px',color:'var(--muted)',fontWeight:600,fontSize:10,textAlign:'center',...mono}}>{c}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r,i)=>(
+            <tr key={i} style={{borderTop:'1px solid var(--border)'}}>
+              <td style={{padding:'4px 8px',color:'var(--text)',fontSize:12}}>{r.ex}</td>
+              {r.vals.map((v,j)=><td key={j} style={{padding:'4px 6px',textAlign:'center',color:v?'var(--accent)':'var(--muted)',...mono,fontSize:11}}>{v||'—'}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>;
+  }
+
+  function doImportSess(){
+    try{
+      const arr=JSON.parse(impText);
+      if(!Array.isArray(arr))throw 0;
+      const valid=arr.filter(s=>s.date&&s.title);
+      if(!valid.length)throw 0;
+      const ns2={...sess};
+      valid.forEach(s=>{
+        ns2[s.date]={title:s.title,type:s.type||'Cardio',duree:+s.duree||60,statut:s.statut||'À faire',source:'Notion',calories:+s.calories||0};
+        if(s.type==='Force'&&!ns2[s.date].tableau)ns2[s.date].tableau=emptyTab();
+      });
+      saveSess(ns2);setImpSess(false);setImpText('');flash('✓ '+valid.length+' séance(s) importée(s)');
+    }catch{flash('⚠ JSON invalide');}
+  }
+
+  function Training(){
+    let impPreview=[];
+    try{if(impText.trim())impPreview=JSON.parse(impText).filter(s=>s.date&&s.title);}catch{}
+    return <div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+        <div style={{display:'flex',gap:5}}>
+          {[{t:false,l:'Sessions'},{t:true,l:'📋 Notion'}].map(b=>(
+            <button key={String(b.t)} onClick={()=>{setImpSess(b.t);setImpText('');setAS(false);}}
+              style={{...btnB,...(impSess===b.t?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--gi)'}:{})}}>
+              {b.l}
+            </button>
+          ))}
+        </div>
+        {!impSess&&<button onClick={()=>setAS(true)} style={{...btnG,padding:'6px 14px'}}>+ Ajouter</button>}
+      </div>
+      {impSess&&<div style={{...card,padding:12,marginBottom:12}}>
+        <div style={{fontSize:12,fontWeight:600,marginBottom:6}}>Importer depuis Notion</div>
+        <div style={{fontSize:10,color:'var(--muted)',marginBottom:8,...mono,lineHeight:1.6}}>
+          {'Colle un tableau JSON depuis Notion :'}<br/>
+          {'[{"date":"2026-06-10","title":"HIIT","type":"HIIT","duree":45},...]'}
+        </div>
+        <textarea value={impText} onChange={e=>setImpText(e.target.value)}
+          placeholder={'[\n  {"date":"2026-06-10","title":"HIIT Hyrox","type":"HIIT","duree":45,"statut":"À faire"},\n  {"date":"2026-06-12","title":"Force Upper","type":"Force","duree":60}\n]'}
+          style={{width:'100%',minHeight:120,padding:'8px 10px',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:6,color:'var(--text)',fontFamily:"'JetBrains Mono',monospace",fontSize:11,resize:'vertical'}}/>
+        {impPreview.length>0&&<div style={{marginTop:8,padding:'7px 10px',background:'var(--gi)',border:'1px solid var(--gb)',borderRadius:6}}>
+          <div style={{fontSize:10,...mono,color:'var(--accent)',marginBottom:4}}>{impPreview.length} séance(s) détectée(s)</div>
+          {impPreview.map((s,i)=><div key={i} style={{fontSize:11,color:'var(--text)',...mono}}>• {s.date} — {s.title} ({s.type||'Cardio'}, {s.duree||60}min)</div>)}
+        </div>}
+        <div style={{display:'flex',gap:6,marginTop:8}}>
+          <button onClick={doImportSess} disabled={!impPreview.length} style={{...btnG,flex:1,padding:'8px',textAlign:'center',opacity:impPreview.length?1:0.4}}>Importer {impPreview.length>0?impPreview.length+' séance(s)':''}</button>
+          <button onClick={()=>{setImpSess(false);setImpText('');}} style={{...btnB,padding:'8px 14px'}}>Annuler</button>
+        </div>
+      </div>}
+      {!impSess&&<>
+      {addSess&&<div style={{...card,padding:12,marginBottom:12}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+          <div><input type="date" value={ns.date} onChange={e=>setNs(s=>({...s,date:e.target.value}))} style={{width:'100%',padding:'7px 9px'}}/></div>
+          <div><select value={ns.type} onChange={e=>setNs(s=>({...s,type:e.target.value}))} style={{width:'100%',padding:'7px 9px'}}>{TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
+          <div style={{gridColumn:'1/-1'}}><input value={ns.title} onChange={e=>setNs(s=>({...s,title:e.target.value}))} placeholder="Titre de la seance..." inputMode="text" style={{width:'100%',padding:'7px 9px'}}/></div>
+          <div><input type="number" inputMode="decimal" value={ns.duree} onChange={e=>setNs(s=>({...s,duree:e.target.value}))} placeholder="Duree (min)" style={{width:'100%',padding:'7px 9px',...mono}}/></div>
+          <div><select value={ns.statut} onChange={e=>setNs(s=>({...s,statut:e.target.value}))} style={{padding:'6px 8px',width:'100%'}}>{STATUTS.map(t=><option key={t}>{t}</option>)}</select></div>
+          <div style={{gridColumn:'1/-1',display:'flex',alignItems:'center',gap:8,background:'var(--surface2)',borderRadius:7,padding:'7px 10px'}}>
+            <span>🔥</span><span style={{fontSize:12,color:'var(--muted)',flex:1}}>Calories brulees</span>
+            <input type="number" inputMode="decimal" value={ns.calories||''} placeholder="0" onChange={e=>setNs(s=>({...s,calories:e.target.value}))} style={{width:90,padding:'5px 8px',textAlign:'center',...mono}}/>
+            <span style={{fontSize:11,color:'var(--muted)',...mono}}>kcal</span>
+          </div>
+          {ns.type==='Force'&&<div style={{gridColumn:'1/-1'}}>
+            <div style={{fontSize:10,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:5}}>Programme de séance</div>
+            {TableauEditor({tab:ns.tableau,onTab:t=>setNs(s=>({...s,tableau:t}))})}
+          </div>}
+        </div>
+        <div style={{display:'flex',gap:6}}>
+          <button onClick={saveNewSess} style={{...btnG,flex:1,padding:'8px',textAlign:'center'}}>Sauvegarder</button>
+          <button onClick={()=>setAS(false)} style={{...btnB,padding:'8px 14px'}}>Annuler</button>
+        </div>
+      </div>}
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {Object.entries(sess).sort((a,b)=>b[0].localeCompare(a[0])).map(([ds,s])=>{
+          const done=s.statut==='Fait',mod=s.statut==='Modifie',ann=s.statut==='Annule';
+          const isEd=editSess?.date===ds;
+          return <div key={ds} style={{...card,padding:'10px 12px',borderColor:ds===sel?'var(--accent)':'var(--border)'}}>
+            {isEd
+              ?<div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:8}}>
+                  <div style={{gridColumn:'1/-1'}}><input value={editSess.title} onChange={e=>setES(x=>({...x,title:e.target.value}))} inputMode="text" style={{width:'100%',padding:'6px 8px'}}/></div>
+                  <select value={editSess.type} onChange={e=>setES(x=>({...x,type:e.target.value}))} style={{padding:'6px 8px'}}>{TYPES.map(t=><option key={t}>{t}</option>)}</select>
+                  <input type="number" inputMode="decimal" value={editSess.duree} onChange={e=>setES(x=>({...x,duree:e.target.value}))} style={{padding:'6px 8px',...mono}}/>
+                  <select value={editSess.statut} onChange={e=>setES(x=>({...x,statut:e.target.value}))} style={{padding:'6px 8px'}}>{STATUTS.map(t=><option key={t}>{t}</option>)}</select>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}><span>🔥</span><input type="number" inputMode="decimal" value={editSess.calories||''} placeholder="kcal" onChange={e=>setES(x=>({...x,calories:e.target.value}))} style={{width:'100%',padding:'6px 8px',...mono}}/></div>
+                  {editSess.type==='Force'&&<div style={{gridColumn:'1/-1'}}>
+                    <div style={{fontSize:10,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:5}}>Programme de séance</div>
+                    {TableauEditor({tab:editSess.tableau||emptyTab(),onTab:t=>setES(x=>({...x,tableau:t}))})}
+                  </div>}
+                </div>
+                <div style={{display:'flex',gap:6}}>
+                  <button onClick={()=>updSess(ds)} style={{...btnG,padding:'6px 14px'}}>OK</button>
+                  <button onClick={()=>setES(null)} style={{...btnB,padding:'6px 12px'}}>Annuler</button>
+                  <button onClick={()=>delSess(ds)} style={{...btnB,marginLeft:'auto',padding:'6px 10px',color:'var(--red)',borderColor:'rgba(255,77,77,.3)'}}>🗑</button>
+                </div>
+              </div>
+              :<div onClick={()=>setSel(ds)}>
+                <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                  <div style={{width:36,textAlign:'center',flexShrink:0}}>
+                    <div style={{fontSize:9,color:'var(--muted)',...mono}}>{new Date(ds+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short'})}</div>
+                    <div style={{fontSize:17,fontWeight:700}}>{new Date(ds+'T12:00:00').getDate()}</div>
+                    <div style={{fontSize:9,color:'var(--muted)',...mono}}>{new Date(ds+'T12:00:00').toLocaleDateString('fr-FR',{month:'short'})}</div>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:600,marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.title}</div>
+                    <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                      {[s.type,s.duree+'min',s.calories>0?'🔥'+s.calories+'kcal':null].filter(Boolean).map((t,i)=>(
+                        <span key={i} style={{fontSize:10,padding:'1px 6px',borderRadius:4,background:'var(--surface2)',color:t.includes('kcal')?'var(--orange)':'var(--muted)',border:'1px solid var(--border)',...mono}}>{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:5,flexShrink:0}}>
+                    <span style={{fontSize:9,padding:'2px 7px',borderRadius:20,...mono,background:done?'var(--gi)':mod?'var(--oi)':ann?'rgba(255,77,77,.08)':'var(--surface2)',color:done?'var(--accent)':mod?'var(--orange)':ann?'var(--red)':'var(--muted)',border:'1px solid '+(done?'var(--gb)':mod?'var(--ob)':ann?'rgba(255,77,77,.25)':'var(--border)')}}>{s.statut}</span>
+                    <button onClick={e=>{e.stopPropagation();setES({...s,date:ds,tableau:s.tableau||emptyTab()});}} style={{...btnB,padding:'3px 8px',fontSize:11}}>✏️</button>
+                  </div>
+                </div>
+                {s.tableau&&TableauView({tab:s.tableau})}
+              </div>
+            }
+          </div>;
+        })}
+        {Object.keys(sess).length===0&&<div style={{textAlign:'center',padding:'40px',color:'var(--muted)'}}>
+          <div style={{fontSize:32,marginBottom:8}}>🏃</div><div style={{fontSize:13}}>Aucune seance</div>
+        </div>}
+      </div>
+      </>}
+    </div>;
+  }
+
+  function Analytics(){
+    return <div>
+      <div style={{fontSize:15,fontWeight:600,marginBottom:12}}>Stats — Semaine</div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
+        {[{l:'Kcal moy./jour',v:Math.round(wk.filter(w=>w.kcal>0).reduce((s,w)=>s+w.kcal,0)/Math.max(1,wk.filter(w=>w.kcal>0).length)),c:'var(--accent)'},{l:'Jours logges',v:wk.filter(w=>w.kcal>0).length+'/7'},{l:'Seances',v:wk.filter(w=>w.isTr).length},{l:'Obj. moyen',v:Math.round(wk.reduce((s,w)=>s+w.target,0)/7),c:'var(--orange)'}].map((c,i)=>(
+          <div key={i} style={{...card,padding:'10px 12px'}}>
+            <div style={{fontSize:10,color:'var(--muted)',marginBottom:3}}>{c.l}</div>
+            <div style={{fontSize:22,fontWeight:700,...mono,color:c.c||'var(--text)'}}>{c.v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{...card,padding:12,marginBottom:10}}>
+        <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Calories / jour</div>
+        <div style={{display:'flex',gap:4,alignItems:'flex-end',height:110}}>
+          {wk.map((w,i)=>{const mx=Math.max(...wk.map(x=>Math.max(x.kcal,x.target)),2200);const h=w.kcal>0?Math.round((w.kcal/mx)*90):0,th=Math.round((w.target/mx)*90);const isSel=w.ds===sel;
+            return <div key={i} onClick={()=>setSel(w.ds)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2,cursor:'pointer'}}>
+              <div style={{fontSize:8,color:'var(--muted)',...mono,height:12}}>{w.kcal>0?w.kcal:''}</div>
+              <div style={{width:'100%',position:'relative',height:90,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
+                <div style={{position:'absolute',bottom:th,left:0,right:0,height:'1px',background:'var(--border)'}}/>
+                <div style={{width:'72%',height:Math.max(h,3),background:isSel?'var(--blue)':w.kcal>w.target?'var(--red)':w.kcal>0?'var(--accent)':'var(--border)',borderRadius:'3px 3px 0 0',transition:'height .3s'}}/>
+              </div>
+              <div style={{fontSize:9,...mono,fontWeight:isSel?700:400,color:isSel?'var(--blue)':'var(--muted)'}}>{w.day}</div>
+              {w.isTr&&<div style={{width:4,height:4,borderRadius:'50%',background:'var(--blue)'}}/>}
+            </div>;
+          })}
+        </div>
+      </div>
+      <div style={{...card,padding:12}}>
+        <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Macros moy.</div>
+        {[{l:'Proteines',k:'p',t:MP.p,c:'var(--blue)'},{l:'Lipides',k:'l',t:MP.l,c:'var(--orange)'}].map(m=>{
+          const lg=wk.filter(w=>w.kcal>0);const avg=lg.length?Math.round(lg.reduce((s,w)=>s+gt(w.ds)[m.k],0)/lg.length):0;
+          return <div key={m.k} style={{marginBottom:10}}>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:3}}>
+              <span style={{color:m.c,fontWeight:600}}>{m.l}</span>
+              <span style={{color:'var(--muted)',...mono}}><strong style={{color:'var(--text)'}}>{avg}g</strong> / {m.t}g</span>
+            </div>
+            <Bar v={avg} max={m.t} c={m.c}/>
+          </div>;
+        })}
+      </div>
+    </div>;
+  }
+
+  function Recettes(){
+    return <div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+        <div style={{fontSize:15,fontWeight:600}}>Recettes <span style={{fontSize:11,color:'var(--muted)',fontWeight:400}}>({Object.keys(recs).length})</span></div>
+        <div style={{display:'flex',gap:5}}>{[{t:'list',l:'Liste'},{t:'create',l:'+ Nouvelle'}].map(b=>(
+          <button key={b.t} onClick={()=>setRtab(b.t)} style={{...btnB,...(rtab===b.t?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--gi)'}:{})}}>{b.l}</button>
+        ))}</div>
+      </div>
+      {rtab==='list'&&<div>
+        {Object.keys(recs).length===0?<div style={{textAlign:'center',padding:'40px',color:'var(--muted)'}}><div style={{fontSize:32,marginBottom:8}}>📖</div><div>Aucune recette</div></div>
+        :<div style={{display:'flex',flexDirection:'column',gap:8}}>
+          {Object.entries(recs).map(([name,r])=>{const pp=r.portions>1?r.portions+'p · '+Math.round(r.totals.kcal/r.portions)+'kcal/p':r.totals.kcal+'kcal';
+            return <div key={name} style={{...card,padding:'10px 12px',display:'flex',alignItems:'center',gap:10}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,marginBottom:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}{r.desc&&<span style={{fontWeight:400,color:'var(--muted)',fontSize:11}}> — {r.desc}</span>}</div>
+                <div style={{display:'flex',gap:6,fontSize:11,...mono,color:'var(--muted)',flexWrap:'wrap'}}>
+                  <span>{pp}</span><span style={{color:'var(--blue)'}}>P:{Math.round(r.totals.p/r.portions)}g</span><span style={{color:'var(--orange)'}}>L:{Math.round(r.totals.l/r.portions)}g</span><span style={{color:'var(--accent)'}}>G:{Math.round(r.totals.g/r.portions)}g</span>
+                </div>
+              </div>
+              <button onClick={()=>delRec(name)} style={{...btnB,padding:'5px 10px'}}>🗑</button>
+            </div>;
+          })}
+        </div>}
+      </div>}
+      {rtab==='create'&&<div style={{...card,padding:12}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
+          <div style={{gridColumn:'1/-1'}}><label style={{fontSize:10,color:'var(--muted)',...mono,display:'block',marginBottom:3}}>NOM</label><input value={nr.name} onChange={e=>setNr(r=>({...r,name:e.target.value}))} placeholder="Ex: Bol poulet-riz..." inputMode="text" style={{width:'100%',padding:'7px 9px'}}/></div>
+          <div><label style={{fontSize:10,color:'var(--muted)',...mono,display:'block',marginBottom:3}}>PORTIONS</label><input type="number" inputMode="decimal" min={1} value={nr.portions} onChange={e=>setNr(r=>({...r,portions:+e.target.value||1}))} style={{width:'100%',padding:'7px 9px'}}/></div>
+          <div><label style={{fontSize:10,color:'var(--muted)',...mono,display:'block',marginBottom:3}}>DESC.</label><input value={nr.desc} onChange={e=>setNr(r=>({...r,desc:e.target.value}))} placeholder="Optionnel" inputMode="text" style={{width:'100%',padding:'7px 9px'}}/></div>
+        </div>
+        <div style={{fontSize:10,color:'var(--muted)',...mono,textTransform:'uppercase',marginBottom:6}}>Ingredients</div>
+        {nr.ings.map((ing,idx)=>{const f=af[ing.food];const rk=f&&ing.qty>0?Math.round(f.kcal*gew(f,ing.qty)/100):0;const u=f?(f.unit==='unit'?'u':f.unit==='ml'?'ml':'g'):'g';
+          return <div key={idx} style={{display:'flex',gap:6,alignItems:'center',marginBottom:6}}>
+            <select value={ing.food} onChange={e=>setNr(r=>{const i=[...r.ings];i[idx]={food:e.target.value,qty:0};return{...r,ings:i};})} style={{flex:1,padding:'5px 6px'}}><option value="">—</option>{Object.keys(af).sort().map(x=><option key={x} value={x}>{x}</option>)}</select>
+            <input type="number" inputMode="decimal" min={0} step={f?.unit==='unit'?1:5} value={ing.qty||''} placeholder="Qte" onChange={e=>setNr(r=>{const i=[...r.ings];i[idx]={...i[idx],qty:parseFloat(e.target.value)||0};return{...r,ings:i};})} style={{width:70,padding:'5px 6px',textAlign:'center',...mono}}/>
+            <span style={{fontSize:10,color:'var(--muted)',...mono,width:20}}>{u}</span>
+            <span style={{fontSize:11,color:'var(--accent)',fontWeight:600,...mono,width:36,textAlign:'right'}}>{rk>0?rk:'—'}</span>
+            <button onClick={()=>setNr(r=>({...r,ings:r.ings.filter((_,i)=>i!==idx)}))} style={{background:'none',border:'none',cursor:'pointer',color:'var(--muted)',fontSize:14}}>✕</button>
+          </div>;
+        })}
+        <button onClick={()=>setNr(r=>({...r,ings:[...r.ings,{food:'',qty:0}]}))} style={{width:'100%',padding:'6px',fontSize:11,border:'1px dashed var(--border)',borderRadius:6,background:'none',color:'var(--muted)',cursor:'pointer',marginBottom:10}}>+ Ingredient</button>
+        {(()=>{const t=rTotals(nr.ings.filter(i=>i.food&&i.qty>0));const p=nr.portions||1;return t.kcal>0&&<div style={{display:'flex',gap:8,padding:'7px 9px',background:'var(--surface2)',borderRadius:7,marginBottom:10,flexWrap:'wrap',fontSize:11,...mono}}>
+          <span>Total:{t.kcal}kcal</span>{p>1&&<span style={{color:'var(--blue)'}}>→{Math.round(t.kcal/p)}/p</span>}
+          <span style={{color:'var(--blue)'}}>P:{Math.round(t.p/p)}g</span><span style={{color:'var(--orange)'}}>L:{Math.round(t.l/p)}g</span><span style={{color:'var(--accent)'}}>G:{Math.round(t.g/p)}g</span>
+        </div>;})()}
+        <div style={{display:'flex',gap:6}}>
+          <button onClick={saveRec} style={{...btnG,flex:1,padding:'8px',textAlign:'center'}}>Sauvegarder</button>
+          <button onClick={()=>{setRtab('list');setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});}} style={{...btnB,padding:'8px 14px'}}>Annuler</button>
+        </div>
+      </div>}
+    </div>;
+  }
+
+  function Coach(){
+    const rc=corosData.recovery,rcC=rc>=80?'var(--accent)':rc>=60?'var(--orange)':'var(--red)';
+    const slC=corosData.sleep.score>=70?'var(--accent)':corosData.sleep.score>=50?'var(--orange)':'var(--red)';
+    return <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 200px)'}}>
+      <div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:8,padding:'7px 11px',marginBottom:8,fontSize:11,...mono,color:'var(--blue)'}}>
+        {selLabel} · {sSes?'Seance':'Repos'} · {sT.kcal}/{sTgt}kcal{sB>0?' +'+sB+'🔥':''} · P:{sT.p}g
+      </div>
+      <div style={{marginBottom:10}}>
+        <div style={{fontSize:9,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:5,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <span>COROS · RÉCUPÉRATION</span>
+          <span style={{color:'var(--muted)'}}>Sync: {corosData.lastSync}</span>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:6}}>
+          {[{l:'RÉCUP',v:rc+'%',c:rcC},{l:'FC REPOS',v:corosData.restingHR,c:'var(--text)'},{l:'HRV',v:corosData.hrvBaseline,c:'var(--blue)'},{l:'SOMMEIL',v:corosData.sleep.score+'/100',c:slC}].map((x,i)=>(
+            <div key={i} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'7px 4px',textAlign:'center'}}>
+              <div style={{fontSize:8,color:'var(--muted)',...mono,marginBottom:3}}>{x.l}</div>
+              <div style={{fontSize:16,fontWeight:700,...mono,color:x.c}}>{x.v}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:'flex',gap:10,marginTop:6,padding:'6px 10px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,fontSize:10,...mono,color:'var(--muted)'}}>
+          <span>💤 {corosData.sleep.duration}</span>
+          <span style={{color:'var(--blue)'}}>Deep {corosData.sleep.deep}</span>
+          <span style={{color:'var(--accent)'}}>REM {corosData.sleep.rem}</span>
+        </div>
+      </div>
+      <div ref={chatRef} style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:8,paddingBottom:8}}>
+        {aiMsgs.length===0&&<div style={{textAlign:'center',padding:'20px',color:'var(--muted)'}}>
+          <div style={{fontSize:28,marginBottom:6}}>🤖</div>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>Coach IA pret</div>
+          <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:20}}>
+            {['Que manger avant ma seance ?','Analyse mes macros','Conseils recuperation ?'].map(q=>(
+              <button key={q} onClick={()=>setAiIn(q)} style={{...btnB,borderColor:'var(--sb)',color:'var(--blue)',padding:'9px 12px',textAlign:'left',borderRadius:8,fontSize:12}}>{q} ↗</button>
+            ))}
+          </div>
+          <div style={{borderTop:'1px dashed var(--border)',paddingTop:14}}>
+            <div style={{fontSize:10,color:'var(--muted)',marginBottom:10,...mono}}>GESTION DES DONNEES</div>
+            <div style={{display:'flex',justifyContent:'center',gap:8}}>
+              <button onClick={exportData} style={{...btnB,padding:'8px 14px',fontSize:12}}>📤 Exporter</button>
+              <button onClick={()=>fileRef.current.click()} style={{...btnB,padding:'8px 14px',fontSize:12}}>📥 Importer</button>
+              <input type="file" ref={fileRef} accept=".json" onChange={importData} style={{display:'none'}}/>
+            </div>
+          </div>
+        </div>}
+        {aiMsgs.map((m,i)=>(
+          <div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
+            <div style={{maxWidth:'82%',padding:'9px 12px',borderRadius:10,fontSize:13,lineHeight:1.6,background:m.role==='user'?'var(--si)':'var(--surface)',color:m.role==='user'?'var(--blue)':'var(--text)',border:'1px solid '+(m.role==='user'?'var(--sb)':'var(--border)')}}>{m.content}</div>
+          </div>
+        ))}
+        {aiLoad&&<div style={{display:'flex'}}><div style={{padding:'8px 13px',borderRadius:10,...card,fontSize:13,color:'var(--muted)'}}>Coach reflechit...</div></div>}
+      </div>
+      <div style={{display:'flex',gap:8,paddingTop:8}}>
+        <input ref={aiInputRef} value={aiIn} onChange={e=>setAiIn(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&sendAI()} placeholder="Pose ta question..." inputMode="text" style={{flex:1,padding:'10px 13px',borderRadius:8}}/>
+        <button onClick={sendAI} disabled={aiLoad||!aiIn.trim()} style={{...btnG,padding:'10px 16px',fontSize:13,opacity:(aiLoad||!aiIn.trim())?0.5:1}}>↗</button>
+      </div>
+    </div>;
+  }
+
+  return <div style={{minHeight:'100vh',background:'var(--bg)'}}>
+    <div className="hdr">
+      <div style={{flex:1}}>
+        <div style={{fontSize:14,fontWeight:700,letterSpacing:'-0.3px'}}>COACH <span style={{color:'var(--accent)'}}>DASHBOARD</span></div>
+        <div style={{fontSize:8,color:'var(--muted)',...mono}}>HYROX · MAASTRICHT 2026</div>
+      </div>
+      <span style={{fontSize:9,padding:'3px 8px',borderRadius:20,...mono,background:'var(--gi)',color:'var(--accent)',border:'1px solid var(--gb)'}}>📱 LOCAL</span>
+      {badge&&<span style={{fontSize:9,color:'var(--accent)',...mono,marginLeft:6}}>{badge}</span>}
+    </div>
+
+    <div className="cal-hdr" onClick={()=>setCal(o=>!o)}>
+      <div style={{flex:1,fontSize:13,fontWeight:600}}>
+        <span style={{color:'var(--accent)'}}>{selLabel}</span>
+        {sSes&&<span style={{fontSize:10,color:'var(--blue)',marginLeft:6,...mono}}>⚡ {sSes.title.slice(0,22)}{sSes.title.length>22?'...':''}</span>}
+      </div>
+      <span style={{fontSize:10,color:'var(--muted)',...mono}}>Calendrier</span>
+      <span style={{fontSize:16,color:'var(--muted)',marginLeft:4}}>{calOpen?'▲':'▼'}</span>
+    </div>
+    <div className="cal-body" style={{maxHeight:calOpen?'320px':'0'}}>{Cal()}</div>
+
+    <div className="page">
+      {tab==='nutrition' &&Nutrition()}
+      {tab==='training'  &&Training()}
+      {tab==='analytics' &&Analytics()}
+      {tab==='recettes'  &&Recettes()}
+      {tab==='coach'     &&Coach()}
+    </div>
+
+    <nav className="bnav">
+      {TABS.map(t=>(
+        <button key={t.id} className={'ni'+(tab===t.id?' on':'')} onClick={()=>setTab(t.id)}>
+          <span className="ic">{t.ic}</span>
+          <span>{t.l}</span>
+        </button>
+      ))}
+    </nav>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(<App/>);
+</script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js');</script>
+</body>
+</html>
