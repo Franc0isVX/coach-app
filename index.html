@@ -573,11 +573,15 @@ function App(){
     try{if(impText.trim())impPreview=JSON.parse(impText).filter(s=>s.date&&s.title);}catch{}
     return <div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-        <div style={{fontSize:15,fontWeight:600}}>Seances <span style={{fontSize:11,color:'var(--muted)',fontWeight:400}}>({Object.keys(sess).length})</span></div>
-        <div style={{display:'flex',gap:6}}>
-          <button onClick={()=>{setImpSess(v=>!v);setImpText('');}} style={{...btnB,padding:'6px 12px'}}>📋 Notion</button>
-          <button onClick={()=>setAS(true)} style={{...btnG,padding:'6px 14px'}}>+ Ajouter</button>
+        <div style={{display:'flex',gap:5}}>
+          {[{t:false,l:'Sessions'},{t:true,l:'📋 Notion'}].map(b=>(
+            <button key={String(b.t)} onClick={()=>{setImpSess(b.t);setImpText('');setAS(false);}}
+              style={{...btnB,...(impSess===b.t?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--gi)'}:{})}}>
+              {b.l}
+            </button>
+          ))}
         </div>
+        {!impSess&&<button onClick={()=>setAS(true)} style={{...btnG,padding:'6px 14px'}}>+ Ajouter</button>}
       </div>
       {impSess&&<div style={{...card,padding:12,marginBottom:12}}>
         <div style={{fontSize:12,fontWeight:600,marginBottom:6}}>Importer depuis Notion</div>
@@ -597,6 +601,7 @@ function App(){
           <button onClick={()=>{setImpSess(false);setImpText('');}} style={{...btnB,padding:'8px 14px'}}>Annuler</button>
         </div>
       </div>}
+      {!impSess&&<>
       {addSess&&<div style={{...card,padding:12,marginBottom:12}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
           <div><input type="date" value={ns.date} onChange={e=>setNs(s=>({...s,date:e.target.value}))} style={{width:'100%',padding:'7px 9px'}}/></div>
@@ -672,6 +677,7 @@ function App(){
           <div style={{fontSize:32,marginBottom:8}}>🏃</div><div style={{fontSize:13}}>Aucune seance</div>
         </div>}
       </div>
+      </>}
     </div>;
   }
 
