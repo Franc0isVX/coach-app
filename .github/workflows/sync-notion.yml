@@ -1,0 +1,25 @@
+name: Sync Notion → Supabase
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'   # every 3 hours
+  workflow_dispatch:          # manual trigger from GitHub Actions tab
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Sync Notion sessions to Supabase
+        run: node .github/scripts/sync-notion.js
+        env:
+          NOTION_TOKEN:        ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID:  ${{ secrets.NOTION_DATABASE_ID }}
+          SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          USER_EMAIL:          ${{ secrets.USER_EMAIL }}
