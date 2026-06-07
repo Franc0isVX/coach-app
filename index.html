@@ -372,11 +372,16 @@ function App(){
   const aiInputRef     = useRef(null);
   const saveDayTimer   = useRef(null);
   const [apiKey,setApiKey] = useState(()=>localStorage.getItem('hyrox_apikey')||'');
+  const [exportReminder, setExportReminder] = useState(false);
 
   useEffect(()=>{
     if(!localStorage.getItem('hyrox_days')){localSet('days',NAS_DAYS);localSet('foods',NAS_FOODS);}
     if(!localStorage.getItem('hyrox_sessions')){localSet('sessions',NAS_SESSIONS);}
     flash('✓ Données chargées');
+    const last=parseInt(localStorage.getItem('hyrox_lastexport')||'0');
+    const snooze=parseInt(localStorage.getItem('hyrox_exportsnooze')||'0');
+    const now=Date.now();
+    if(now-last>7*24*60*60*1000&&now>snooze) setExportReminder(true);
   },[]);
 
   function flash(m){setBadge(m);setTimeout(()=>setBadge(''),3000);}
@@ -421,7 +426,7 @@ function App(){
   function delSess(ds){const s={...sess};delete s[ds];saveSess(s);}
   function addCF(name,data){const c={...cf,[name]:data};setCf(c);localSet('foods',c);}
 
-  function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess,coros:corosData},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();flash('✓ Exporté');}
+  function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess,coros:corosData},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();localStorage.setItem('hyrox_lastexport',String(Date.now()));localStorage.removeItem('hyrox_exportsnooze');setExportReminder(false);flash('✓ Exporté — sauvegarde à jour');}
   function importData(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=evt=>{try{const d=JSON.parse(evt.target.result);if(d.days){setDays(d.days);localSet('days',d.days);}if(d.foods){setCf(d.foods);localSet('foods',d.foods);}if(d.recipes){setRecs(d.recipes);localSet('recipes',d.recipes);}if(d.sessions){setSess(d.sessions);localSet('sessions',d.sessions);}if(d.coros){setCorosData(d.coros);localSet('coros',d.coros);}flash('Import OK');}catch{alert('Erreur JSON');}};reader.readAsText(file);}
 
   async function sendAI(){
@@ -973,6 +978,12 @@ function App(){
       <span style={{fontSize:16,color:'var(--muted)',marginLeft:4}}>{calOpen?'▲':'▼'}</span>
     </div>
     <div className="cal-body" style={{maxHeight:calOpen?'320px':'0'}}>{Cal()}</div>
+
+    {exportReminder&&<div style={{background:'var(--oi)',borderBottom:'1px solid var(--ob)',padding:'8px 14px',display:'flex',alignItems:'center',gap:8}}>
+      <span style={{fontSize:12,flex:1}}>💾 Sauvegarde recommandée — protège tes données</span>
+      <button onClick={exportData} style={{...btnG,padding:'4px 10px',fontSize:11}}>📤 Exporter</button>
+      <button onClick={()=>{localStorage.setItem('hyrox_exportsnooze',String(Date.now()+2*24*60*60*1000));setExportReminder(false);}} style={{...btnB,padding:'4px 8px',fontSize:11}}>+2j</button>
+    </div>}
 
     <div className="page">
       {tab==='nutrition' &&Nutrition()}
