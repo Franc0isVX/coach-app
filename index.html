@@ -141,7 +141,7 @@ const NAS_SESSIONS = {
   "2026-06-03":{title:"Test FC max",type:"Cardio",duree:33,statut:"Fait",source:"COROS",calories:422},
   "2026-06-04":{title:"Cardio Int.",type:"Cardio",duree:65,statut:"Fait",source:"COROS",calories:625}
 };
-const DEFAULT_COROS = {recovery:99,restingHR:50,hrvBaseline:42,sleep:{score:67,duration:'5h42',deep:'1h06',rem:'1h44'},lastSync:'2026-06-05'};
+const DEFAULT_COROS = {recovery:99,restingHR:50,hrvBaseline:53,hrv:54,trainingLoad:{short:52,long:64,ratio:0.81},sleep:{score:94,duration:'9h10',deep:'1h28',rem:'1h39'},weight:86.5,lastSync:'2026-06-07'};
 const NAS_FOODS = {
   "Margarine":{kcal:720,p:0,l:80,g:0,unit:"g"},
   "Confiture ss sucre":{kcal:89,p:0,l:0,g:21.7,unit:"g"},
@@ -378,6 +378,8 @@ function App(){
   const saveDayTimer   = useRef(null);
   const [apiKey,setApiKey] = useState(()=>localStorage.getItem('hyrox_apikey')||'');
   const [exportReminder, setExportReminder] = useState(false);
+  const [editCoros, setEditCoros] = useState(false);
+  const [corosEdit, setCorosEdit] = useState({});
   const [sbUser, setSbUser] = useState(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPwd, setAuthPwd] = useState('');
@@ -1014,21 +1016,51 @@ function App(){
       <div style={{marginBottom:10}}>
         <div style={{fontSize:9,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:5,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <span>COROS · RÉCUPÉRATION</span>
-          <span style={{color:'var(--muted)'}}>Sync: {corosData.lastSync}</span>
+          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            <span style={{color:'var(--muted)'}}>Sync: {corosData.lastSync}</span>
+            <button onClick={()=>{if(!editCoros)setCorosEdit({recovery:corosData.recovery,restingHR:corosData.restingHR,hrv:corosData.hrv||corosData.hrvBaseline,weight:corosData.weight||'',sleep:{...corosData.sleep}});setEditCoros(e=>!e);}} style={{...btnB,padding:'2px 8px',fontSize:10}}>{editCoros?'✕':'✏️'}</button>
+          </div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:6}}>
-          {[{l:'RÉCUP',v:rc+'%',c:rcC},{l:'FC REPOS',v:corosData.restingHR,c:'var(--text)'},{l:'HRV',v:corosData.hrvBaseline,c:'var(--blue)'},{l:'SOMMEIL',v:corosData.sleep.score+'/100',c:slC}].map((x,i)=>(
-            <div key={i} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'7px 4px',textAlign:'center'}}>
-              <div style={{fontSize:8,color:'var(--muted)',...mono,marginBottom:3}}>{x.l}</div>
-              <div style={{fontSize:16,fontWeight:700,...mono,color:x.c}}>{x.v}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{display:'flex',gap:10,marginTop:6,padding:'6px 10px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,fontSize:10,...mono,color:'var(--muted)'}}>
-          <span>💤 {corosData.sleep.duration}</span>
-          <span style={{color:'var(--blue)'}}>Deep {corosData.sleep.deep}</span>
-          <span style={{color:'var(--accent)'}}>REM {corosData.sleep.rem}</span>
-        </div>
+        {!editCoros?<>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:6}}>
+            {[{l:'RÉCUP',v:rc+'%',c:rcC},{l:'FC REPOS',v:corosData.restingHR+'bpm',c:'var(--text)'},{l:'HRV',v:(corosData.hrv||corosData.hrvBaseline)+'ms',c:'var(--blue)'},{l:'SOMMEIL',v:corosData.sleep.score+'/100',c:slC}].map((x,i)=>(
+              <div key={i} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'7px 4px',textAlign:'center'}}>
+                <div style={{fontSize:8,color:'var(--muted)',...mono,marginBottom:3}}>{x.l}</div>
+                <div style={{fontSize:14,fontWeight:700,...mono,color:x.c}}>{x.v}</div>
+              </div>
+            ))}
+          </div>
+          {corosData.trainingLoad&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginTop:6}}>
+            {[{l:'CHARGE CT',v:corosData.trainingLoad.short,c:'var(--orange)'},{l:'CHARGE LT',v:corosData.trainingLoad.long,c:'var(--muted)'},{l:'RATIO',v:corosData.trainingLoad.ratio,c:corosData.trainingLoad.ratio<0.8?'var(--blue)':corosData.trainingLoad.ratio>1.1?'var(--red)':'var(--accent)'}].map((x,i)=>(
+              <div key={i} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 4px',textAlign:'center'}}>
+                <div style={{fontSize:8,color:'var(--muted)',...mono,marginBottom:2}}>{x.l}</div>
+                <div style={{fontSize:14,fontWeight:700,...mono,color:x.c}}>{x.v}</div>
+              </div>
+            ))}
+          </div>}
+          <div style={{display:'flex',gap:10,marginTop:6,padding:'6px 10px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,fontSize:10,...mono,color:'var(--muted)'}}>
+            <span>💤 {corosData.sleep.duration}</span>
+            <span style={{color:'var(--blue)'}}>Deep {corosData.sleep.deep}</span>
+            <span style={{color:'var(--accent)'}}>REM {corosData.sleep.rem}</span>
+            {corosData.weight&&<span style={{marginLeft:'auto',color:'var(--text)',fontWeight:600}}>{corosData.weight}kg</span>}
+          </div>
+        </>:<div style={{...card,padding:10}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:8}}>
+            {[{k:'recovery',l:'Récup %'},{k:'restingHR',l:'FC Repos'},{k:'hrv',l:'HRV (ms)'},{k:'weight',l:'Poids (kg)'}].map(f=>(
+              <div key={f.k}>
+                <div style={{fontSize:9,...mono,color:'var(--muted)',marginBottom:2}}>{f.l}</div>
+                <input type="number" inputMode="decimal" value={corosEdit[f.k]||''} onChange={e=>setCorosEdit(x=>({...x,[f.k]:e.target.value}))} style={{width:'100%',padding:'6px 8px',...mono}}/>
+              </div>
+            ))}
+            {[{k:'score',l:'Sommeil /100'},{k:'duration',l:'Durée (ex: 7h30)'},{k:'deep',l:'Deep (ex: 1h20)'},{k:'rem',l:'REM (ex: 1h45)'}].map(f=>(
+              <div key={f.k}>
+                <div style={{fontSize:9,...mono,color:'var(--muted)',marginBottom:2}}>{f.l}</div>
+                <input type={f.k==='score'?'number':'text'} inputMode={f.k==='score'?'decimal':'text'} value={corosEdit.sleep?.[f.k]||''} onChange={e=>setCorosEdit(x=>({...x,sleep:{...x.sleep,[f.k]:e.target.value}}))} style={{width:'100%',padding:'6px 8px',...mono}}/>
+              </div>
+            ))}
+          </div>
+          <button onClick={()=>{const nc={...corosData,...corosEdit,recovery:+corosEdit.recovery||corosData.recovery,restingHR:+corosEdit.restingHR||corosData.restingHR,hrv:+corosEdit.hrv||corosData.hrv,weight:+corosEdit.weight||corosData.weight,sleep:{...corosData.sleep,...corosEdit.sleep,score:+corosEdit.sleep?.score||corosData.sleep.score},lastSync:today()};setCorosData(nc);localSet('coros',nc);queueSync('coros',nc);setEditCoros(false);flash('✓ COROS mis à jour');}} style={{...btnG,width:'100%',padding:'8px',textAlign:'center'}}>Sauvegarder</button>
+        </div>}
       </div>
       <div ref={chatRef} style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:8,paddingBottom:8}}>
         {aiMsgs.length===0&&<div style={{textAlign:'center',padding:'20px',color:'var(--muted)'}}>
