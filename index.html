@@ -1078,7 +1078,7 @@ function App(){
     </div>
     <div className="cal-body" style={{maxHeight:calOpen?'320px':'0'}}>{Cal()}</div>
 
-    {exportReminder&&<div style={{background:'var(--oi)',borderBottom:'1px solid var(--ob)',padding:'8px 14px',display:'flex',alignItems:'center',gap:8}}>
+    {exportReminder&&!sbUser&&<div style={{background:'var(--oi)',borderBottom:'1px solid var(--ob)',padding:'8px 14px',display:'flex',alignItems:'center',gap:8}}>
       <span style={{fontSize:12,flex:1}}>💾 Sauvegarde recommandée — protège tes données</span>
       <button onClick={exportData} style={{...btnG,padding:'4px 10px',fontSize:11}}>📤 Exporter</button>
       <button onClick={()=>{localStorage.setItem('hyrox_exportsnooze',String(Date.now()+2*24*60*60*1000));setExportReminder(false);}} style={{...btnB,padding:'4px 8px',fontSize:11}}>+2j</button>
