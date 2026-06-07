@@ -380,6 +380,8 @@ function App(){
   const [exportReminder, setExportReminder] = useState(false);
   const [sbUser, setSbUser] = useState(null);
   const [authEmail, setAuthEmail] = useState('');
+  const [authPwd, setAuthPwd] = useState('');
+  const [authMode, setAuthMode] = useState('login');
   const [authLoading, setAuthLoading] = useState(false);
   const [authMsg, setAuthMsg] = useState('');
   const [syncing, setSyncing] = useState(false);
@@ -479,14 +481,18 @@ function App(){
     },2000);
   }
 
-  async function sendMagicLink(){
-    if(!sb||!authEmail.trim()) return;
-    setAuthLoading(true);
-    const redirectTo=window.location.origin+window.location.pathname.replace(/index\.html$/,'');
-    const {error}=await sb.auth.signInWithOtp({email:authEmail.trim(),options:{emailRedirectTo:redirectTo}});
+  async function handleAuth(){
+    if(!sb||!authEmail.trim()||!authPwd) return;
+    setAuthLoading(true);setAuthMsg('');
+    if(authMode==='signup'){
+      const {error}=await sb.auth.signUp({email:authEmail.trim(),password:authPwd});
+      if(error) setAuthMsg('⚠ '+error.message);
+      else setAuthMsg('✓ Compte créé ! Tu es connecté.');
+    } else {
+      const {error}=await sb.auth.signInWithPassword({email:authEmail.trim(),password:authPwd});
+      if(error) setAuthMsg('⚠ Email ou mot de passe incorrect');
+    }
     setAuthLoading(false);
-    if(error) setAuthMsg('⚠ '+error.message);
-    else{setAuthMsg('✓ Lien envoyé ! Vérifie ta boite mail.');setAuthEmail('');}
   }
 
   function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess,coros:corosData},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();localStorage.setItem('hyrox_lastexport',String(Date.now()));localStorage.removeItem('hyrox_exportsnooze');setExportReminder(false);flash('✓ Exporté — sauvegarde à jour');}
@@ -959,12 +965,19 @@ function App(){
         <div style={{fontSize:9,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:6}}>SYNCHRONISATION CLOUD{syncing&&<span style={{color:'var(--accent)'}}> · ⟳ en cours...</span>}</div>
         {!sbUser
           ?<div>
-            <div style={{fontSize:11,color:'var(--muted)',marginBottom:8}}>Connecte-toi pour sauvegarder tes données dans le cloud — survivent aux réinstallations.</div>
-            <div style={{display:'flex',gap:6}}>
-              <input type="email" inputMode="email" placeholder="ton@email.fr" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} onKeyDown={e=>e.key==='Enter'&&sendMagicLink()} style={{flex:1,padding:'7px 9px',fontSize:14,borderRadius:6}}/>
-              <button onClick={sendMagicLink} disabled={authLoading||!authEmail.trim()} style={{...btnG,padding:'7px 14px',opacity:authLoading||!authEmail.trim()?0.5:1}}>{authLoading?'...':'Envoyer ↗'}</button>
+            <div style={{display:'flex',gap:4,marginBottom:8}}>
+              {[{m:'login',l:'Se connecter'},{m:'signup',l:'Créer compte'}].map(x=>(
+                <button key={x.m} onClick={()=>{setAuthMode(x.m);setAuthMsg('');}} style={{...btnB,flex:1,padding:'5px 8px',...(authMode===x.m?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--gi)'}:{})}}>{x.l}</button>
+              ))}
             </div>
-            {authMsg&&<div style={{fontSize:10,...mono,color:authMsg.startsWith('⚠')?'var(--orange)':'var(--accent)',marginTop:6}}>{authMsg}</div>}
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              <input type="email" inputMode="email" placeholder="email@exemple.com" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{padding:'7px 9px',fontSize:14,borderRadius:6}}/>
+              <input type="password" placeholder="Mot de passe (min. 6 car.)" value={authPwd} onChange={e=>setAuthPwd(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleAuth()} style={{padding:'7px 9px',fontSize:14,borderRadius:6}}/>
+              <button onClick={handleAuth} disabled={authLoading||!authEmail.trim()||!authPwd} style={{...btnG,padding:'8px',textAlign:'center',opacity:authLoading||!authEmail.trim()||!authPwd?0.5:1}}>
+                {authLoading?'...':(authMode==='login'?'Se connecter':'Créer mon compte')}
+              </button>
+            </div>
+            {authMsg&&<div style={{fontSize:10,...mono,color:authMsg.startsWith('⚠')?'var(--orange)':'var(--accent)',marginTop:5}}>{authMsg}</div>}
           </div>
           :<div style={{display:'flex',alignItems:'center',gap:10}}>
             <div style={{flex:1}}>
