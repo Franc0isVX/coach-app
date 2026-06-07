@@ -1,4 +1,4 @@
-const CACHE = 'coach-hyrox-v3';
+const CACHE = 'coach-hyrox-v4';
 const PRECACHE = ['./index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
