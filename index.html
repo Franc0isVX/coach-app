@@ -164,7 +164,7 @@ function localSet(k,d){localStorage.setItem('hyrox_'+k,JSON.stringify(d));}
 const MEALS=[{id:'matin',l:'Matin',ic:'☀️'},{id:'midi',l:'Midi',ic:'🌤️'},{id:'collation',l:'Collation',ic:'🍎'},{id:'soir',l:'Soir',ic:'🌙'}];
 const TABS=[{id:'nutrition',ic:'🍽',l:'Nutrition'},{id:'training',ic:'🏋️',l:'Séances'},{id:'analytics',ic:'📊',l:'Stats'},{id:'recettes',ic:'📖',l:'Recettes'},{id:'coach',ic:'🤖',l:'Coach'}];
 const TYPES=['Cardio','Force','HIIT','Hyrox Coach','Mobilité','Autre'];
-const STATUTS=['À faire','Fait','Modifié','Annulé'];
+const STATUTS=['À faire','Fait','Modifié','Sauté','Annulé'];
 
 const BF={
   'Poulet blanc cuit':{kcal:165,p:31,l:3.6,g:0,unit:'g'},
@@ -814,7 +814,7 @@ function App(){
       </div>}
       <div style={{display:'flex',flexDirection:'column',gap:8}}>
         {Object.entries(sess).sort((a,b)=>b[0].localeCompare(a[0])).map(([ds,s])=>{
-          const done=s.statut==='Fait',mod=s.statut==='Modifié',ann=s.statut==='Annulé';
+          const done=s.statut==='Fait',mod=s.statut==='Modifié',ann=s.statut==='Annulé'||s.statut==='Sauté';
           const isEd=editSess?.date===ds;
           return <div key={ds} style={{...card,padding:'10px 12px',borderColor:ds===sel?'var(--accent)':'var(--border)'}}>
             {isEd

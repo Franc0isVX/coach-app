@@ -17,7 +17,10 @@ async function fetchNotionPages() {
   let cursor = undefined;
 
   do {
-    const body = { page_size: 100 };
+    const body = {
+      page_size: 100,
+      sorts: [{ property: 'Date prévue', direction: 'ascending' }],
+    };
     if (cursor) body.start_cursor = cursor;
 
     const res = await fetch(`https://api.notion.com/v1/databases/${NOTION_DB_ID}/query`, {
@@ -74,7 +77,7 @@ function mapPage(page) {
   const poidBarre  = p['Poid Barre']?.number;
   const poidDumbell= p['Poid Dumbell (1)']?.number;
   const poidWallball=p['Poid Wallball']?.select?.name;
-  const theme      = p['Thème de la semaine ']?.select?.name;
+  const theme      = p['Thème de la semaine']?.select?.name;
 
   if (difficulte)          session.difficulte  = difficulte;
   if (detail)              session.detail      = detail;
