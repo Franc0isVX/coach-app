@@ -473,11 +473,18 @@ function App(){
     pendingSync.current={...pendingSync.current,[key]:val};
     clearTimeout(cloudTimer.current);
     cloudTimer.current=setTimeout(async()=>{
+      if(!sbUserRef.current) return;
+      const uid=sbUserRef.current.id;
       const payload={...pendingSync.current};
       pendingSync.current={};
       setSyncing(true);
-      await sb.from('user_data').upsert({id:sbUserRef.current.id,...payload,updated_at:new Date().toISOString()}).catch(()=>{});
-      setSyncing(false);
+      try{
+        await Promise.race([
+          sb.from('user_data').upsert({id:uid,...payload,updated_at:new Date().toISOString()}),
+          new Promise((_,r)=>setTimeout(()=>r('timeout'),8000))
+        ]);
+      }catch{}
+      finally{setSyncing(false);}
     },2000);
   }
 
@@ -962,7 +969,7 @@ function App(){
     function saveApiKey(k){setApiKey(k);localStorage.setItem('hyrox_apikey',k);}
     return <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 200px)'}}>
       <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 12px',marginBottom:8}}>
-        <div style={{fontSize:9,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:6}}>SYNCHRONISATION CLOUD{syncing&&<span style={{color:'var(--accent)'}}> · ⟳ en cours...</span>}</div>
+        <div style={{fontSize:9,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:6}}>SYNCHRONISATION CLOUD</div>
         {!sbUser
           ?<div>
             <div style={{display:'flex',gap:4,marginBottom:8}}>
@@ -1062,7 +1069,7 @@ function App(){
         <div style={{fontSize:8,color:'var(--muted)',...mono}}>HYROX · MAASTRICHT 2026</div>
       </div>
       {sbUser
-        ?<span style={{fontSize:9,padding:'3px 8px',borderRadius:20,...mono,background:'var(--gi)',color:'var(--accent)',border:'1px solid var(--gb)'}}>{syncing?'⟳ SYNC':'☁️ CLOUD'}</span>
+        ?<span style={{fontSize:9,padding:'3px 8px',borderRadius:20,...mono,background:'var(--gi)',color:'var(--accent)',border:'1px solid var(--gb)'}}>☁️ CLOUD</span>
         :<span style={{fontSize:9,padding:'3px 8px',borderRadius:20,...mono,background:'var(--surface2)',color:'var(--muted)',border:'1px solid var(--border)'}}>📱 LOCAL</span>
       }
       {badge&&<span style={{fontSize:9,color:'var(--accent)',...mono,marginLeft:6}}>{badge}</span>}
