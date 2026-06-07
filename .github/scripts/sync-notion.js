@@ -65,7 +65,7 @@ function mapPage(page) {
     duree:    p['Durée (min)']?.number           || 0,
     statut:   parseStatus(p['Statut']?.select?.name),
     source:   p['Source']?.select?.name          || 'Notion',
-    calories: 0,
+    calories: p['Calories brûlées']?.number      || 0,
     notionId: page.id,
   };
 
@@ -78,6 +78,8 @@ function mapPage(page) {
   const poidDumbell= p['Poid Dumbell (1)']?.number;
   const poidWallball=p['Poid Wallball']?.select?.name;
   const theme      = p['Thème de la semaine']?.select?.name;
+  const dureeReelle= p['Durée réelle (min)']?.number;
+  const notesCoach = p['Notes coach']?.rich_text?.[0]?.plain_text;
 
   if (difficulte)          session.difficulte  = difficulte;
   if (detail)              session.detail      = detail;
@@ -88,6 +90,8 @@ function mapPage(page) {
   if (poidDumbell)         session.poidDumbell = poidDumbell;
   if (poidWallball)        session.poidWallball= poidWallball;
   if (theme)               session.theme       = theme;
+  if (dureeReelle)         session.dureeReelle = dureeReelle;
+  if (notesCoach)          session.notesCoach  = notesCoach;
 
   return { date, session };
 }
