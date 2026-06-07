@@ -120,11 +120,16 @@ select option{background:var(--surface2);}
 </head>
 <body>
 <div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
 <script type="text/babel">
 const {useState,useEffect,useRef} = React;
+const sb = window.supabase?.createClient(
+  'https://mlqnbuvdsdbztieudbef.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1scW5idXZkc2RienRpZXVkYmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODM2ODIsImV4cCI6MjA5NjM1OTY4Mn0.afjdMlWJtSGZedAgJ5cKdJ3ehbU349W0DnxPnJocBtg'
+);
 
 const TK = 1965, RK = 1665, MP = {p:177,l:88};
 
@@ -373,6 +378,14 @@ function App(){
   const saveDayTimer   = useRef(null);
   const [apiKey,setApiKey] = useState(()=>localStorage.getItem('hyrox_apikey')||'');
   const [exportReminder, setExportReminder] = useState(false);
+  const [sbUser, setSbUser] = useState(null);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authMsg, setAuthMsg] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const sbUserRef = useRef(null);
+  const cloudTimer = useRef(null);
+  const pendingSync = useRef({});
 
   useEffect(()=>{
     if(!localStorage.getItem('hyrox_days')){localSet('days',NAS_DAYS);localSet('foods',NAS_FOODS);}
@@ -382,6 +395,16 @@ function App(){
     const snooze=parseInt(localStorage.getItem('hyrox_exportsnooze')||'0');
     const now=Date.now();
     if(now-last>7*24*60*60*1000&&now>snooze) setExportReminder(true);
+    if(!sb) return;
+    sb.auth.getSession().then(({data:{session}})=>{
+      if(session?.user){setSbUser(session.user);sbUserRef.current=session.user;syncFromCloud();}
+    });
+    const {data:{subscription}}=sb.auth.onAuthStateChange((evt,session)=>{
+      const u=session?.user||null;
+      setSbUser(u);sbUserRef.current=u;
+      if(evt==='SIGNED_IN') syncFromCloud();
+    });
+    return ()=>subscription.unsubscribe();
   },[]);
 
   function flash(m){setBadge(m);setTimeout(()=>setBadge(''),3000);}
@@ -399,16 +422,16 @@ function App(){
   const gt   = ds=>totals(gm(ds),afw);
   const gb   = ds=>sess[ds]?.calories||days[ds]?.cal||0;
 
-  function saveDay(dd){setDays(dd);if(saveDayTimer.current)clearTimeout(saveDayTimer.current);saveDayTimer.current=setTimeout(()=>localSet('days',dd),800);}
+  function saveDay(dd){setDays(dd);if(saveDayTimer.current)clearTimeout(saveDayTimer.current);saveDayTimer.current=setTimeout(()=>{localSet('days',dd);queueSync('days',dd);},800);}
   function addRow(ds,mid){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].meals[mid]=[...(dd[ds].meals[mid]||[]),{food:'',qty:0}];saveDay(dd,ds);}
   function updRow(ds,mid,idx,fld,val){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};const row=dd[ds].meals[mid][idx];if(!row)return;if(fld==='food'){row.food=val;row.qty=0;}else row.qty=parseFloat(val)||0;saveDay(dd,ds);}
   function delRow(ds,mid,idx){const dd=JSON.parse(JSON.stringify(days));dd[ds].meals[mid].splice(idx,1);saveDay(dd,ds);}
   function setCalB(ds,v){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].cal=v;saveDay(dd,ds);}
-  function saveCf(){if(!nf.name||!nf.kcal)return;const c={...cf,[nf.name]:{kcal:+nf.kcal,p:+nf.p||0,l:+nf.l||0,g:+nf.g||0,unit:nf.unit}};setCf(c);localSet('foods',c);flash('✓ '+nf.name);setNf({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});setAF(false);}
+  function saveCf(){if(!nf.name||!nf.kcal)return;const c={...cf,[nf.name]:{kcal:+nf.kcal,p:+nf.p||0,l:+nf.l||0,g:+nf.g||0,unit:nf.unit}};setCf(c);localSet('foods',c);queueSync('foods',c);flash('✓ '+nf.name);setNf({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});setAF(false);}
   function rTotals(ings){let k=0,p=0,l=0,g=0;ings.forEach(r=>{const f=af[r.food];if(f&&r.qty>0){const gr=gew(f,r.qty);const x=gr/100;k+=f.kcal*x;p+=f.p*x;l+=f.l*x;g+=f.g*x;}});return{kcal:Math.round(k),p:Math.round(p),l:Math.round(l),g:Math.round(g)};}
-  function saveRec(){if(!nr.name)return;const ings=nr.ings.filter(i=>i.food&&i.qty>0);if(!ings.length)return;const t=rTotals(ings);const r={...recs,[nr.name]:{portions:Math.max(1,nr.portions||1),desc:nr.desc,ingredients:ings,totals:t}};setRecs(r);localSet('recipes',r);flash('✓ '+nr.name);setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});setRtab('list');}
+  function saveRec(){if(!nr.name)return;const ings=nr.ings.filter(i=>i.food&&i.qty>0);if(!ings.length)return;const t=rTotals(ings);const r={...recs,[nr.name]:{portions:Math.max(1,nr.portions||1),desc:nr.desc,ingredients:ings,totals:t}};setRecs(r);localSet('recipes',r);queueSync('recipes',r);flash('✓ '+nr.name);setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});setRtab('list');}
   function delRec(n){const r={...recs};delete r[n];setRecs(r);localSet('recipes',r);}
-  function saveSess(s){setSess(s);localSet('sessions',s);flash('✓ Séances');}
+  function saveSess(s){setSess(s);localSet('sessions',s);queueSync('sessions',s);flash('✓ Séances');}
   function saveNewSess(){
     if(!ns.title||!ns.date)return;
     const sd={title:ns.title,type:ns.type,duree:+ns.duree,statut:ns.statut,source:'Manuel',calories:+ns.calories||0};
@@ -424,7 +447,47 @@ function App(){
     setES(null);
   }
   function delSess(ds){const s={...sess};delete s[ds];saveSess(s);}
-  function addCF(name,data){const c={...cf,[name]:data};setCf(c);localSet('foods',c);}
+  function addCF(name,data){const c={...cf,[name]:data};setCf(c);localSet('foods',c);queueSync('foods',c);}
+
+  async function syncFromCloud(){
+    if(!sb||!sbUserRef.current) return;
+    const uid=sbUserRef.current.id;
+    const {data,error}=await sb.from('user_data').select('*').eq('id',uid).single();
+    if(error||!data){
+      await sb.from('user_data').upsert({id:uid,days:localGet('days',{}),sessions:localGet('sessions',{}),foods:localGet('foods',{}),recipes:localGet('recipes',{}),coros:localGet('coros',DEFAULT_COROS),updated_at:new Date().toISOString()});
+      flash('☁️ Données envoyées dans le cloud');
+      return;
+    }
+    if(data.days&&Object.keys(data.days).length>0){setDays(data.days);localSet('days',data.days);}
+    if(data.sessions&&Object.keys(data.sessions).length>0){setSess(data.sessions);localSet('sessions',data.sessions);}
+    if(data.foods&&Object.keys(data.foods).length>0){setCf(data.foods);localSet('foods',data.foods);}
+    if(data.recipes&&Object.keys(data.recipes).length>0){setRecs(data.recipes);localSet('recipes',data.recipes);}
+    if(data.coros&&data.coros.recovery){setCorosData(data.coros);localSet('coros',data.coros);}
+    flash('☁️ Sync OK');
+  }
+
+  function queueSync(key,val){
+    if(!sbUserRef.current) return;
+    pendingSync.current={...pendingSync.current,[key]:val};
+    clearTimeout(cloudTimer.current);
+    cloudTimer.current=setTimeout(async()=>{
+      const payload={...pendingSync.current};
+      pendingSync.current={};
+      setSyncing(true);
+      await sb.from('user_data').upsert({id:sbUserRef.current.id,...payload,updated_at:new Date().toISOString()}).catch(()=>{});
+      setSyncing(false);
+    },2000);
+  }
+
+  async function sendMagicLink(){
+    if(!sb||!authEmail.trim()) return;
+    setAuthLoading(true);
+    const redirectTo=window.location.origin+window.location.pathname.replace(/index\.html$/,'');
+    const {error}=await sb.auth.signInWithOtp({email:authEmail.trim(),options:{emailRedirectTo:redirectTo}});
+    setAuthLoading(false);
+    if(error) setAuthMsg('⚠ '+error.message);
+    else{setAuthMsg('✓ Lien envoyé ! Vérifie ta boite mail.');setAuthEmail('');}
+  }
 
   function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess,coros:corosData},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();localStorage.setItem('hyrox_lastexport',String(Date.now()));localStorage.removeItem('hyrox_exportsnooze');setExportReminder(false);flash('✓ Exporté — sauvegarde à jour');}
   function importData(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=evt=>{try{const d=JSON.parse(evt.target.result);if(d.days){setDays(d.days);localSet('days',d.days);}if(d.foods){setCf(d.foods);localSet('foods',d.foods);}if(d.recipes){setRecs(d.recipes);localSet('recipes',d.recipes);}if(d.sessions){setSess(d.sessions);localSet('sessions',d.sessions);}if(d.coros){setCorosData(d.coros);localSet('coros',d.coros);}flash('Import OK');}catch{alert('Erreur JSON');}};reader.readAsText(file);}
@@ -892,6 +955,26 @@ function App(){
     const slC=corosData.sleep.score>=70?'var(--accent)':corosData.sleep.score>=50?'var(--orange)':'var(--red)';
     function saveApiKey(k){setApiKey(k);localStorage.setItem('hyrox_apikey',k);}
     return <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 200px)'}}>
+      <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 12px',marginBottom:8}}>
+        <div style={{fontSize:9,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:6}}>SYNCHRONISATION CLOUD{syncing&&<span style={{color:'var(--accent)'}}> · ⟳ en cours...</span>}</div>
+        {!sbUser
+          ?<div>
+            <div style={{fontSize:11,color:'var(--muted)',marginBottom:8}}>Connecte-toi pour sauvegarder tes données dans le cloud — survivent aux réinstallations.</div>
+            <div style={{display:'flex',gap:6}}>
+              <input type="email" inputMode="email" placeholder="ton@email.fr" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} onKeyDown={e=>e.key==='Enter'&&sendMagicLink()} style={{flex:1,padding:'7px 9px',fontSize:14,borderRadius:6}}/>
+              <button onClick={sendMagicLink} disabled={authLoading||!authEmail.trim()} style={{...btnG,padding:'7px 14px',opacity:authLoading||!authEmail.trim()?0.5:1}}>{authLoading?'...':'Envoyer ↗'}</button>
+            </div>
+            {authMsg&&<div style={{fontSize:10,...mono,color:authMsg.startsWith('⚠')?'var(--orange)':'var(--accent)',marginTop:6}}>{authMsg}</div>}
+          </div>
+          :<div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,fontWeight:600,color:'var(--accent)'}}>☁️ Connecté</div>
+              <div style={{fontSize:10,...mono,color:'var(--muted)'}}>{sbUser.email}</div>
+            </div>
+            <button onClick={()=>sb.auth.signOut()} style={{...btnB,padding:'5px 10px',fontSize:11}}>Déconnexion</button>
+          </div>
+        }
+      </div>
       {!apiKey
         ?<div style={{background:'var(--oi)',border:'1px solid var(--ob)',borderRadius:8,padding:'8px 11px',marginBottom:8}}>
           <div style={{fontSize:10,...mono,color:'var(--orange)',marginBottom:5}}>⚠ Clé API Anthropic requise pour le Coach IA</div>
@@ -965,7 +1048,10 @@ function App(){
         <div style={{fontSize:14,fontWeight:700,letterSpacing:'-0.3px'}}>COACH <span style={{color:'var(--accent)'}}>DASHBOARD</span></div>
         <div style={{fontSize:8,color:'var(--muted)',...mono}}>HYROX · MAASTRICHT 2026</div>
       </div>
-      <span style={{fontSize:9,padding:'3px 8px',borderRadius:20,...mono,background:'var(--gi)',color:'var(--accent)',border:'1px solid var(--gb)'}}>📱 LOCAL</span>
+      {sbUser
+        ?<span style={{fontSize:9,padding:'3px 8px',borderRadius:20,...mono,background:'var(--gi)',color:'var(--accent)',border:'1px solid var(--gb)'}}>{syncing?'⟳ SYNC':'☁️ CLOUD'}</span>
+        :<span style={{fontSize:9,padding:'3px 8px',borderRadius:20,...mono,background:'var(--surface2)',color:'var(--muted)',border:'1px solid var(--border)'}}>📱 LOCAL</span>
+      }
       {badge&&<span style={{fontSize:9,color:'var(--accent)',...mono,marginLeft:6}}>{badge}</span>}
     </div>
 
