@@ -31,7 +31,6 @@ input,select{
   color:var(--text);
   border-radius:6px;
   outline:none;
-  /* Anti-zoom iOS — min 16px */
   font-size:16px;
 }
 input:focus,select:focus{border-color:var(--accent);}
@@ -120,28 +119,22 @@ select option{background:var(--surface2);}
 </head>
 <body>
 <div id="app"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
 <script type="text/babel">
 const {useState,useEffect,useRef} = React;
-const sb = window.supabase?.createClient(
-  'https://mlqnbuvdsdbztieudbef.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1scW5idXZkc2RienRpZXVkYmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODM2ODIsImV4cCI6MjA5NjM1OTY4Mn0.afjdMlWJtSGZedAgJ5cKdJ3ehbU349W0DnxPnJocBtg'
-);
 
 const TK = 1965, RK = 1665, MP = {p:177,l:88};
 
 const NAS_SESSIONS = {
-  "2026-05-30":{title:"Hybrid Fitness",type:"HIIT",duree:40,statut:"Fait",source:"COROS",calories:521},
-  "2026-05-31":{title:"Hyrox Solo + DUO",type:"Hyrox Coach",duree:98,statut:"Fait",source:"COROS",calories:836},
-  "2026-06-01":{title:"Course Pecquencourt",type:"Cardio",duree:35,statut:"Fait",source:"COROS",calories:438},
-  "2026-06-02":{title:"Musculation",type:"Force",duree:84,statut:"Fait",source:"COROS",calories:324},
-  "2026-06-03":{title:"Test FC max",type:"Cardio",duree:33,statut:"Fait",source:"COROS",calories:422},
-  "2026-06-04":{title:"Cardio Int.",type:"Cardio",duree:65,statut:"Fait",source:"COROS",calories:625}
+  "2026-05-30":{title:"Hybrid Fitness",type:"HIIT",duree:40,statut:"Fait",calories:521},
+  "2026-05-31":{title:"Hyrox Solo + DUO",type:"Hyrox Coach",duree:98,statut:"Fait",calories:836},
+  "2026-06-01":{title:"Course Pecquencourt",type:"Cardio",duree:35,statut:"Fait",calories:438},
+  "2026-06-02":{title:"Musculation",type:"Force",duree:84,statut:"Fait",calories:324},
+  "2026-06-03":{title:"Test FC max",type:"Cardio",duree:33,statut:"Fait",calories:422},
+  "2026-06-04":{title:"Cardio Int.",type:"Cardio",duree:65,statut:"Fait",calories:625}
 };
-const DEFAULT_COROS = {recovery:99,restingHR:50,hrvBaseline:53,hrv:54,trainingLoad:{short:52,long:64,ratio:0.81},sleep:{score:94,duration:'9h10',deep:'1h28',rem:'1h39'},weight:86.5,lastSync:'2026-06-07'};
 const NAS_FOODS = {
   "Margarine":{kcal:720,p:0,l:80,g:0,unit:"g"},
   "Confiture ss sucre":{kcal:89,p:0,l:0,g:21.7,unit:"g"},
@@ -261,7 +254,6 @@ function Bar({v,max,c='var(--accent)'}){
   </div>;
 }
 
-// FoodRow: défini hors App pour référence stable (évite remount iOS clavier).
 function FoodRow({slot, row, idx, afw, sel, updRow, delRow, addCF}){
   const f = afw[row.food];
   const ul = f?(f.ul||(f.unit==='unit'?'u':f.unit==='ml'?'ml':'g')):'g';
@@ -357,7 +349,6 @@ function App(){
   const [cf,setCf]     = useState(()=>localGet('foods',NAS_FOODS));
   const [recs,setRecs] = useState(()=>localGet('recipes',{}));
   const [sess,setSess] = useState(()=>localGet('sessions',NAS_SESSIONS));
-  const [corosData,setCorosData] = useState(()=>localGet('coros',DEFAULT_COROS));
   const [badge,setBadge] = useState('');
   const [aiMsgs,setAiMsgs] = useState([]);
   const [aiIn,setAiIn] = useState('');
@@ -368,8 +359,6 @@ function App(){
   const [nr,setNr]     = useState({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});
   const [addSess,setAS] = useState(false);
   const [editSess,setES] = useState(null);
-  const [impSess,setImpSess] = useState(false);
-  const [impText,setImpText] = useState('');
   const emptyTab = ()=>({cols:['S1','S2','S3'],rows:[{ex:'',vals:['','','']}]});
   const [ns,setNs]     = useState({date:'',title:'',type:'Cardio',duree:60,statut:'À faire',calories:0,tableau:emptyTab()});
   const chatRef        = useRef(null);
@@ -378,18 +367,6 @@ function App(){
   const saveDayTimer   = useRef(null);
   const [apiKey,setApiKey] = useState(()=>localStorage.getItem('hyrox_apikey')||'');
   const [exportReminder, setExportReminder] = useState(false);
-  const [editCoros, setEditCoros] = useState(false);
-  const [corosEdit, setCorosEdit] = useState({});
-  const [sbUser, setSbUser] = useState(null);
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPwd, setAuthPwd] = useState('');
-  const [authMode, setAuthMode] = useState('login');
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authMsg, setAuthMsg] = useState('');
-  const [syncing, setSyncing] = useState(false);
-  const sbUserRef = useRef(null);
-  const cloudTimer = useRef(null);
-  const pendingSync = useRef({});
 
   useEffect(()=>{
     if(!localStorage.getItem('hyrox_days')){localSet('days',NAS_DAYS);localSet('foods',NAS_FOODS);}
@@ -399,16 +376,6 @@ function App(){
     const snooze=parseInt(localStorage.getItem('hyrox_exportsnooze')||'0');
     const now=Date.now();
     if(now-last>7*24*60*60*1000&&now>snooze) setExportReminder(true);
-    if(!sb) return;
-    sb.auth.getSession().then(({data:{session}})=>{
-      if(session?.user){setSbUser(session.user);sbUserRef.current=session.user;syncFromCloud();}
-    });
-    const {data:{subscription}}=sb.auth.onAuthStateChange((evt,session)=>{
-      const u=session?.user||null;
-      setSbUser(u);sbUserRef.current=u;
-      if(evt==='SIGNED_IN') syncFromCloud();
-    });
-    return ()=>subscription.unsubscribe();
   },[]);
 
   function flash(m){setBadge(m);setTimeout(()=>setBadge(''),3000);}
@@ -419,26 +386,25 @@ function App(){
     if(r.totals&&r.portions>0) afw['[R] '+n]={kcal:Math.round(r.totals.kcal/r.portions),p:Math.round(r.totals.p/r.portions*10)/10,l:Math.round(r.totals.l/r.portions*10)/10,g:Math.round(r.totals.g/r.portions*10)/10,unit:'unit',uw:1,ul:'portion(s)'};
   });
 
-  const gdt  = ds=>sess[ds]?'notion':'rest';
-  const istr = ds=>{const t=gdt(ds);return t==='notion'||t==='training';};
+  const istr = ds=>!!sess[ds];
   const gtgt = ds=>istr(ds)?TK:RK;
   const gm   = ds=>days[ds]?.meals||{matin:[],midi:[],collation:[],soir:[]};
   const gt   = ds=>totals(gm(ds),afw);
   const gb   = ds=>sess[ds]?.calories||days[ds]?.cal||0;
 
-  function saveDay(dd){setDays(dd);if(saveDayTimer.current)clearTimeout(saveDayTimer.current);saveDayTimer.current=setTimeout(()=>{localSet('days',dd);queueSync('days',dd);},800);}
+  function saveDay(dd){setDays(dd);if(saveDayTimer.current)clearTimeout(saveDayTimer.current);saveDayTimer.current=setTimeout(()=>{localSet('days',dd);},800);}
   function addRow(ds,mid){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].meals[mid]=[...(dd[ds].meals[mid]||[]),{food:'',qty:0}];saveDay(dd,ds);}
   function updRow(ds,mid,idx,fld,val){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};const row=dd[ds].meals[mid][idx];if(!row)return;if(fld==='food'){row.food=val;row.qty=0;}else row.qty=parseFloat(val)||0;saveDay(dd,ds);}
   function delRow(ds,mid,idx){const dd=JSON.parse(JSON.stringify(days));dd[ds].meals[mid].splice(idx,1);saveDay(dd,ds);}
   function setCalB(ds,v){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].cal=v;saveDay(dd,ds);}
-  function saveCf(){if(!nf.name||!nf.kcal)return;const c={...cf,[nf.name]:{kcal:+nf.kcal,p:+nf.p||0,l:+nf.l||0,g:+nf.g||0,unit:nf.unit}};setCf(c);localSet('foods',c);queueSync('foods',c);flash('✓ '+nf.name);setNf({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});setAF(false);}
+  function saveCf(){if(!nf.name||!nf.kcal)return;const c={...cf,[nf.name]:{kcal:+nf.kcal,p:+nf.p||0,l:+nf.l||0,g:+nf.g||0,unit:nf.unit}};setCf(c);localSet('foods',c);flash('✓ '+nf.name);setNf({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});setAF(false);}
   function rTotals(ings){let k=0,p=0,l=0,g=0;ings.forEach(r=>{const f=af[r.food];if(f&&r.qty>0){const gr=gew(f,r.qty);const x=gr/100;k+=f.kcal*x;p+=f.p*x;l+=f.l*x;g+=f.g*x;}});return{kcal:Math.round(k),p:Math.round(p),l:Math.round(l),g:Math.round(g)};}
-  function saveRec(){if(!nr.name)return;const ings=nr.ings.filter(i=>i.food&&i.qty>0);if(!ings.length)return;const t=rTotals(ings);const r={...recs,[nr.name]:{portions:Math.max(1,nr.portions||1),desc:nr.desc,ingredients:ings,totals:t}};setRecs(r);localSet('recipes',r);queueSync('recipes',r);flash('✓ '+nr.name);setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});setRtab('list');}
+  function saveRec(){if(!nr.name)return;const ings=nr.ings.filter(i=>i.food&&i.qty>0);if(!ings.length)return;const t=rTotals(ings);const r={...recs,[nr.name]:{portions:Math.max(1,nr.portions||1),desc:nr.desc,ingredients:ings,totals:t}};setRecs(r);localSet('recipes',r);flash('✓ '+nr.name);setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});setRtab('list');}
   function delRec(n){const r={...recs};delete r[n];setRecs(r);localSet('recipes',r);}
-  function saveSess(s){setSess(s);localSet('sessions',s);queueSync('sessions',s);flash('✓ Séances');}
+  function saveSess(s){setSess(s);localSet('sessions',s);flash('✓ Séances');}
   function saveNewSess(){
     if(!ns.title||!ns.date)return;
-    const sd={title:ns.title,type:ns.type,duree:+ns.duree,statut:ns.statut,source:'Manuel',calories:+ns.calories||0};
+    const sd={title:ns.title,type:ns.type,duree:+ns.duree,statut:ns.statut,calories:+ns.calories||0};
     if(ns.type==='Force')sd.tableau=ns.tableau;
     saveSess({...sess,[ns.date]:sd});
     if(+ns.calories>0)setCalB(ns.date,+ns.calories);
@@ -451,61 +417,7 @@ function App(){
     setES(null);
   }
   function delSess(ds){const s={...sess};delete s[ds];saveSess(s);}
-  function addCF(name,data){const c={...cf,[name]:data};setCf(c);localSet('foods',c);queueSync('foods',c);}
-
-  async function syncFromCloud(){
-    if(!sb||!sbUserRef.current) return;
-    const uid=sbUserRef.current.id;
-    const {data,error}=await sb.from('user_data').select('*').eq('id',uid).single();
-    if(error||!data){
-      await sb.from('user_data').upsert({id:uid,days:localGet('days',{}),sessions:localGet('sessions',{}),foods:localGet('foods',{}),recipes:localGet('recipes',{}),coros:localGet('coros',DEFAULT_COROS),updated_at:new Date().toISOString()});
-      flash('☁️ Données envoyées dans le cloud');
-      return;
-    }
-    if(data.days&&Object.keys(data.days).length>0){setDays(data.days);localSet('days',data.days);}
-    if(data.sessions&&Object.keys(data.sessions).length>0){setSess(data.sessions);localSet('sessions',data.sessions);}
-    if(data.foods&&Object.keys(data.foods).length>0){setCf(data.foods);localSet('foods',data.foods);}
-    if(data.recipes&&Object.keys(data.recipes).length>0){setRecs(data.recipes);localSet('recipes',data.recipes);}
-    if(data.coros&&data.coros.recovery){setCorosData(data.coros);localSet('coros',data.coros);}
-    flash('☁️ Sync OK');
-  }
-
-  function queueSync(key,val){
-    if(!sbUserRef.current) return;
-    pendingSync.current={...pendingSync.current,[key]:val};
-    clearTimeout(cloudTimer.current);
-    cloudTimer.current=setTimeout(async()=>{
-      if(!sbUserRef.current) return;
-      const uid=sbUserRef.current.id;
-      const payload={...pendingSync.current};
-      pendingSync.current={};
-      setSyncing(true);
-      try{
-        await Promise.race([
-          sb.from('user_data').upsert({id:uid,...payload,updated_at:new Date().toISOString()}),
-          new Promise((_,r)=>setTimeout(()=>r('timeout'),8000))
-        ]);
-      }catch{}
-      finally{setSyncing(false);}
-    },2000);
-  }
-
-  async function handleAuth(){
-    if(!sb||!authEmail.trim()||!authPwd) return;
-    setAuthLoading(true);setAuthMsg('');
-    if(authMode==='signup'){
-      const {error}=await sb.auth.signUp({email:authEmail.trim(),password:authPwd});
-      if(error) setAuthMsg('⚠ '+error.message);
-      else setAuthMsg('✓ Compte créé ! Tu es connecté.');
-    } else {
-      const {error}=await sb.auth.signInWithPassword({email:authEmail.trim(),password:authPwd});
-      if(error) setAuthMsg('⚠ Email ou mot de passe incorrect');
-    }
-    setAuthLoading(false);
-  }
-
-  function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess,coros:corosData},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();localStorage.setItem('hyrox_lastexport',String(Date.now()));localStorage.removeItem('hyrox_exportsnooze');setExportReminder(false);flash('✓ Exporté — sauvegarde à jour');}
-  function importData(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=evt=>{try{const d=JSON.parse(evt.target.result);if(d.days){setDays(d.days);localSet('days',d.days);}if(d.foods){setCf(d.foods);localSet('foods',d.foods);}if(d.recipes){setRecs(d.recipes);localSet('recipes',d.recipes);}if(d.sessions){setSess(d.sessions);localSet('sessions',d.sessions);}if(d.coros){setCorosData(d.coros);localSet('coros',d.coros);}flash('Import OK');}catch{alert('Erreur JSON');}};reader.readAsText(file);}
+  function addCF(name,data){const c={...cf,[name]:data};setCf(c);localSet('foods',c);}
 
   async function sendAI(){
     if(!aiIn.trim())return;
@@ -516,7 +428,7 @@ function App(){
     setTimeout(()=>{if(chatRef.current)chatRef.current.scrollTop=chatRef.current.scrollHeight;},50);
     try{
       const t=gt(sel),tgt=gtgt(sel),s=sess[sel];
-      const sys='Tu es Coach HYROX. Jour:'+sel+' | '+tgt+'kcal | '+t.kcal+'kcal conso | P:'+t.p+'g L:'+t.l+'g G:'+t.g+'g'+(s?' | Seance:'+s.title:'')+(gb(sel)>0?' | '+gb(sel)+'kcal brulees':'')+' | COROS: Recup '+corosData.recovery+'% FC repos '+corosData.restingHR+' HRV '+corosData.hrvBaseline+' Sommeil '+corosData.sleep.score+'/100. Reponds en francais, max 120 mots.';
+      const sys='Tu es Coach HYROX. Jour:'+sel+' | Obj:'+tgt+'kcal | Conso:'+t.kcal+'kcal | P:'+t.p+'g L:'+t.l+'g G:'+t.g+'g'+(s?' | Seance:'+s.title+' '+s.type+' '+s.duree+'min':' | Jour de repos')+(gb(sel)>0?' | Depense:'+gb(sel)+'kcal':'')+'. Reponds en francais, max 120 mots.';
       const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:500,system:sys,messages:msgs})});
       const data=await res.json();
       setAiMsgs([...msgs,{role:'assistant',content:data.content?.[0]?.text||'Erreur.'}]);
@@ -591,7 +503,7 @@ function App(){
         </div>
       </div>
 
-      {/* Séance + calories brûlées */}
+      {/* Séance du jour + dépense énergétique */}
       <div style={{...card,padding:'10px 12px',marginBottom:10}}>
         {sSes&&<div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:7,padding:'7px 10px',marginBottom:8,display:'flex',gap:8,alignItems:'center'}}>
           <span style={{fontSize:16}}>🏋️</span>
@@ -606,7 +518,7 @@ function App(){
         </div>}
         <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--surface2)',borderRadius:7,padding:'7px 10px'}}>
           <span style={{fontSize:16}}>🔥</span>
-          <span style={{fontSize:12,color:'var(--muted)',flex:1}}>Calories brulees</span>
+          <span style={{fontSize:12,color:'var(--muted)',flex:1}}>Dépense énergétique</span>
           <input type="number" inputMode="decimal" min={0} step={10}
             value={sSes?(sSes.calories>0?sSes.calories:''):(days[sel]?.cal||'')}
             placeholder="0"
@@ -617,7 +529,6 @@ function App(){
             }}
             style={{width:90,padding:'5px 8px',textAlign:'center',...mono}}/>
           <span style={{fontSize:11,color:'var(--muted)',...mono}}>kcal</span>
-          {sSes&&<span style={{fontSize:9,color:'var(--blue)',...mono}}>⚡séance</span>}
         </div>
       </div>
 
@@ -641,7 +552,7 @@ function App(){
         })}
       </div>
 
-      {/* Aliment custom */}
+      {/* Aliment personnalisé */}
       <div style={{marginTop:10}}>
         {!addFood
           ?<button onClick={()=>setAF(true)} style={{...btnB,width:'100%',padding:'10px',textAlign:'center',fontSize:12}}>+ Aliment personnalise</button>
@@ -733,64 +644,15 @@ function App(){
     </div>;
   }
 
-  function flattenSess(parsed){
-    let arr=[];
-    parsed.forEach(item=>{
-      if(item.seances&&Array.isArray(item.seances)) arr=[...arr,...item.seances];
-      else arr.push(item);
-    });
-    return arr.filter(s=>s.date&&(s.title||s.titre));
-  }
-  function doImportSess(){
-    try{
-      const parsed=JSON.parse(impText);
-      if(!Array.isArray(parsed))throw 0;
-      const valid=flattenSess(parsed);
-      if(!valid.length)throw 0;
-      const ns2={...sess};
-      valid.forEach(s=>{
-        ns2[s.date]={title:s.title||s.titre,type:s.type||'Cardio',duree:+s.duree||+s.duree_min||60,statut:s.statut||'À faire',source:s.source||'Notion',calories:+s.calories||0};
-        if(s.type==='Force'&&!ns2[s.date].tableau)ns2[s.date].tableau=emptyTab();
-      });
-      saveSess(ns2);setImpSess(false);setImpText('');flash('✓ '+valid.length+' séance(s) importée(s)');
-    }catch{flash('⚠ JSON invalide');}
-  }
-
   function Training(){
-    let impPreview=[];
-    try{if(impText.trim()){const p=JSON.parse(impText);impPreview=Array.isArray(p)?flattenSess(p):[];}}catch{}
     return <div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-        <div style={{display:'flex',gap:5}}>
-          {[{t:false,l:'Sessions'},{t:true,l:'📋 Notion'}].map(b=>(
-            <button key={String(b.t)} onClick={()=>{setImpSess(b.t);setImpText('');setAS(false);}}
-              style={{...btnB,...(impSess===b.t?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--gi)'}:{})}}>
-              {b.l}
-            </button>
-          ))}
-        </div>
-        {!impSess&&<button onClick={()=>setAS(true)} style={{...btnG,padding:'6px 14px'}}>+ Ajouter</button>}
+        <div style={{fontSize:15,fontWeight:600}}>Séances <span style={{fontSize:11,color:'var(--muted)',fontWeight:400}}>({Object.keys(sess).length})</span></div>
+        {!addSess&&<button onClick={()=>setAS(true)} style={{...btnG,padding:'6px 14px'}}>+ Ajouter</button>}
       </div>
-      {impSess&&<div style={{...card,padding:12,marginBottom:12}}>
-        <div style={{fontSize:12,fontWeight:600,marginBottom:6}}>Importer depuis Notion</div>
-        <div style={{fontSize:10,color:'var(--muted)',marginBottom:8,...mono,lineHeight:1.6}}>
-          {'Colle un tableau JSON depuis Notion :'}<br/>
-          {'[{"date":"2026-06-10","title":"HIIT","type":"HIIT","duree":45},...]'}
-        </div>
-        <textarea value={impText} onChange={e=>setImpText(e.target.value)}
-          placeholder={'[\n  {"date":"2026-06-10","title":"HIIT Hyrox","type":"HIIT","duree":45,"statut":"À faire"},\n  {"date":"2026-06-12","title":"Force Upper","type":"Force","duree":60}\n]'}
-          style={{width:'100%',minHeight:120,padding:'8px 10px',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:6,color:'var(--text)',fontFamily:"'JetBrains Mono',monospace",fontSize:11,resize:'vertical'}}/>
-        {impPreview.length>0&&<div style={{marginTop:8,padding:'7px 10px',background:'var(--gi)',border:'1px solid var(--gb)',borderRadius:6}}>
-          <div style={{fontSize:10,...mono,color:'var(--accent)',marginBottom:4}}>{impPreview.length} séance(s) détectée(s)</div>
-          {impPreview.map((s,i)=><div key={i} style={{fontSize:11,color:'var(--text)',...mono}}>• {s.date} — {s.title||s.titre} ({s.type||'Cardio'}, {s.duree||s.duree_min||60}min)</div>)}
-        </div>}
-        <div style={{display:'flex',gap:6,marginTop:8}}>
-          <button onClick={doImportSess} disabled={!impPreview.length} style={{...btnG,flex:1,padding:'8px',textAlign:'center',opacity:impPreview.length?1:0.4}}>Importer {impPreview.length>0?impPreview.length+' séance(s)':''}</button>
-          <button onClick={()=>{setImpSess(false);setImpText('');}} style={{...btnB,padding:'8px 14px'}}>Annuler</button>
-        </div>
-      </div>}
-      {!impSess&&<>
+
       {addSess&&<div style={{...card,padding:12,marginBottom:12}}>
+        <div style={{fontSize:13,fontWeight:600,marginBottom:8,color:'var(--accent)'}}>Nouvelle séance</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
           <div><input type="date" value={ns.date} onChange={e=>setNs(s=>({...s,date:e.target.value}))} style={{width:'100%',padding:'7px 9px'}}/></div>
           <div><select value={ns.type} onChange={e=>setNs(s=>({...s,type:e.target.value}))} style={{width:'100%',padding:'7px 9px'}}>{TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
@@ -798,7 +660,7 @@ function App(){
           <div><input type="number" inputMode="decimal" value={ns.duree} onChange={e=>setNs(s=>({...s,duree:e.target.value}))} placeholder="Duree (min)" style={{width:'100%',padding:'7px 9px',...mono}}/></div>
           <div><select value={ns.statut} onChange={e=>setNs(s=>({...s,statut:e.target.value}))} style={{padding:'6px 8px',width:'100%'}}>{STATUTS.map(t=><option key={t}>{t}</option>)}</select></div>
           <div style={{gridColumn:'1/-1',display:'flex',alignItems:'center',gap:8,background:'var(--surface2)',borderRadius:7,padding:'7px 10px'}}>
-            <span>🔥</span><span style={{fontSize:12,color:'var(--muted)',flex:1}}>Calories brulees</span>
+            <span>🔥</span><span style={{fontSize:12,color:'var(--muted)',flex:1}}>Dépense énergétique</span>
             <input type="number" inputMode="decimal" value={ns.calories||''} placeholder="0" onChange={e=>setNs(s=>({...s,calories:e.target.value}))} style={{width:90,padding:'5px 8px',textAlign:'center',...mono}}/>
             <span style={{fontSize:11,color:'var(--muted)',...mono}}>kcal</span>
           </div>
@@ -812,6 +674,7 @@ function App(){
           <button onClick={()=>setAS(false)} style={{...btnB,padding:'8px 14px'}}>Annuler</button>
         </div>
       </div>}
+
       <div style={{display:'flex',flexDirection:'column',gap:8}}>
         {Object.entries(sess).sort((a,b)=>b[0].localeCompare(a[0])).map(([ds,s])=>{
           const done=s.statut==='Fait',mod=s.statut==='Modifié',ann=s.statut==='Annulé';
@@ -862,10 +725,9 @@ function App(){
           </div>;
         })}
         {Object.keys(sess).length===0&&<div style={{textAlign:'center',padding:'40px',color:'var(--muted)'}}>
-          <div style={{fontSize:32,marginBottom:8}}>🏃</div><div style={{fontSize:13}}>Aucune seance</div>
+          <div style={{fontSize:32,marginBottom:8}}>🏃</div><div style={{fontSize:13}}>Aucune seance — appuyez sur + Ajouter</div>
         </div>}
       </div>
-      </>}
     </div>;
   }
 
@@ -897,7 +759,7 @@ function App(){
         </div>
       </div>
       <div style={{...card,padding:12}}>
-        <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Macros moy.</div>
+        <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Macros moy. / semaine</div>
         {[{l:'Proteines',k:'p',t:MP.p,c:'var(--blue)'},{l:'Lipides',k:'l',t:MP.l,c:'var(--orange)'},{l:'Glucides',k:'g',t:Math.round(RK*0.4/4),c:'var(--accent)'}].map(m=>{
           const lg=wk.filter(w=>w.kcal>0);const avg=lg.length?Math.round(lg.reduce((s,w)=>s+gt(w.ds)[m.k],0)/lg.length):0;
           return <div key={m.k} style={{marginBottom:10}}>
@@ -965,114 +827,41 @@ function App(){
     </div>;
   }
 
+  function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();localStorage.setItem('hyrox_lastexport',String(Date.now()));localStorage.removeItem('hyrox_exportsnooze');setExportReminder(false);flash('✓ Exporté');}
+  function importData(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=evt=>{try{const d=JSON.parse(evt.target.result);if(d.days){setDays(d.days);localSet('days',d.days);}if(d.foods){setCf(d.foods);localSet('foods',d.foods);}if(d.recipes){setRecs(d.recipes);localSet('recipes',d.recipes);}if(d.sessions){setSess(d.sessions);localSet('sessions',d.sessions);}flash('✓ Import OK');}catch{alert('Erreur JSON');}};reader.readAsText(file);}
+
   function Coach(){
-    const rc=corosData.recovery,rcC=rc>=80?'var(--accent)':rc>=60?'var(--orange)':'var(--red)';
-    const slC=corosData.sleep.score>=70?'var(--accent)':corosData.sleep.score>=50?'var(--orange)':'var(--red)';
     function saveApiKey(k){setApiKey(k);localStorage.setItem('hyrox_apikey',k);}
     return <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 200px)'}}>
-      <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 12px',marginBottom:8}}>
-        <div style={{fontSize:9,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:6}}>SYNCHRONISATION CLOUD</div>
-        {!sbUser
-          ?<div>
-            <div style={{display:'flex',gap:4,marginBottom:8}}>
-              {[{m:'login',l:'Se connecter'},{m:'signup',l:'Créer compte'}].map(x=>(
-                <button key={x.m} onClick={()=>{setAuthMode(x.m);setAuthMsg('');}} style={{...btnB,flex:1,padding:'5px 8px',...(authMode===x.m?{borderColor:'var(--accent)',color:'var(--accent)',background:'var(--gi)'}:{})}}>{x.l}</button>
-              ))}
-            </div>
-            <div style={{display:'flex',flexDirection:'column',gap:6}}>
-              <input type="email" inputMode="email" placeholder="email@exemple.com" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{padding:'7px 9px',fontSize:14,borderRadius:6}}/>
-              <input type="password" placeholder="Mot de passe (min. 6 car.)" value={authPwd} onChange={e=>setAuthPwd(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleAuth()} style={{padding:'7px 9px',fontSize:14,borderRadius:6}}/>
-              <button onClick={handleAuth} disabled={authLoading||!authEmail.trim()||!authPwd} style={{...btnG,padding:'8px',textAlign:'center',opacity:authLoading||!authEmail.trim()||!authPwd?0.5:1}}>
-                {authLoading?'...':(authMode==='login'?'Se connecter':'Créer mon compte')}
-              </button>
-            </div>
-            {authMsg&&<div style={{fontSize:10,...mono,color:authMsg.startsWith('⚠')?'var(--orange)':'var(--accent)',marginTop:5}}>{authMsg}</div>}
-          </div>
-          :<div style={{display:'flex',alignItems:'center',gap:10}}>
-            <div style={{flex:1}}>
-              <div style={{fontSize:12,fontWeight:600,color:'var(--accent)'}}>☁️ Connecté</div>
-              <div style={{fontSize:10,...mono,color:'var(--muted)'}}>{sbUser.email}</div>
-            </div>
-            <button onClick={()=>sb.auth.signOut()} style={{...btnB,padding:'5px 10px',fontSize:11}}>Déconnexion</button>
-          </div>
-        }
-      </div>
       {!apiKey
         ?<div style={{background:'var(--oi)',border:'1px solid var(--ob)',borderRadius:8,padding:'8px 11px',marginBottom:8}}>
-          <div style={{fontSize:10,...mono,color:'var(--orange)',marginBottom:5}}>⚠ Clé API Anthropic requise pour le Coach IA</div>
+          <div style={{fontSize:10,...mono,color:'var(--orange)',marginBottom:5}}>⚠ Clé API Anthropic requise</div>
           <div style={{display:'flex',gap:6}}>
             <input type="password" placeholder="sk-ant-api03-..." value={apiKey} onChange={e=>saveApiKey(e.target.value)} style={{flex:1,padding:'6px 9px',fontSize:13,borderRadius:6}}/>
           </div>
-          <div style={{fontSize:9,color:'var(--muted)',marginTop:4,...mono}}>Stockée localement sur votre appareil · console.anthropic.com</div>
+          <div style={{fontSize:9,color:'var(--muted)',marginTop:4,...mono}}>Stockée localement · console.anthropic.com</div>
         </div>
         :<div style={{display:'flex',alignItems:'center',gap:8,padding:'5px 10px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,marginBottom:8}}>
           <span style={{fontSize:10,...mono,color:'var(--accent)',flex:1}}>✓ API connectée · ...{apiKey.slice(-6)}</span>
           <button onClick={()=>saveApiKey('')} style={{...btnB,padding:'3px 9px',fontSize:10}}>Modifier</button>
         </div>
       }
+
       <div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:8,padding:'7px 11px',marginBottom:8,fontSize:11,...mono,color:'var(--blue)'}}>
-        {selLabel} · {sSes?'Seance':'Repos'} · {sT.kcal}/{sTgt}kcal{sB>0?' +'+sB+'🔥':''} · P:{sT.p}g
+        {selLabel} · {sSes?'Séance: '+sSes.title:'Repos'} · {sT.kcal}/{sTgt}kcal{sB>0?' · 🔥'+sB+'kcal dépensées':''} · P:{sT.p}g L:{sT.l}g G:{sT.g}g
       </div>
-      <div style={{marginBottom:10}}>
-        <div style={{fontSize:9,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:5,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <span>COROS · RÉCUPÉRATION</span>
-          <div style={{display:'flex',gap:6,alignItems:'center'}}>
-            <span style={{color:'var(--muted)'}}>Sync: {corosData.lastSync}</span>
-            <button onClick={()=>{if(!editCoros)setCorosEdit({recovery:corosData.recovery,restingHR:corosData.restingHR,hrv:corosData.hrv||corosData.hrvBaseline,weight:corosData.weight||'',sleep:{...corosData.sleep}});setEditCoros(e=>!e);}} style={{...btnB,padding:'2px 8px',fontSize:10}}>{editCoros?'✕':'✏️'}</button>
-          </div>
-        </div>
-        {!editCoros?<>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:6}}>
-            {[{l:'RÉCUP',v:rc+'%',c:rcC},{l:'FC REPOS',v:corosData.restingHR+'bpm',c:'var(--text)'},{l:'HRV',v:(corosData.hrv||corosData.hrvBaseline)+'ms',c:'var(--blue)'},{l:'SOMMEIL',v:corosData.sleep.score+'/100',c:slC}].map((x,i)=>(
-              <div key={i} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'7px 4px',textAlign:'center'}}>
-                <div style={{fontSize:8,color:'var(--muted)',...mono,marginBottom:3}}>{x.l}</div>
-                <div style={{fontSize:14,fontWeight:700,...mono,color:x.c}}>{x.v}</div>
-              </div>
-            ))}
-          </div>
-          {corosData.trainingLoad&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginTop:6}}>
-            {[{l:'CHARGE CT',v:corosData.trainingLoad.short,c:'var(--orange)'},{l:'CHARGE LT',v:corosData.trainingLoad.long,c:'var(--muted)'},{l:'RATIO',v:corosData.trainingLoad.ratio,c:corosData.trainingLoad.ratio<0.8?'var(--blue)':corosData.trainingLoad.ratio>1.1?'var(--red)':'var(--accent)'}].map((x,i)=>(
-              <div key={i} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 4px',textAlign:'center'}}>
-                <div style={{fontSize:8,color:'var(--muted)',...mono,marginBottom:2}}>{x.l}</div>
-                <div style={{fontSize:14,fontWeight:700,...mono,color:x.c}}>{x.v}</div>
-              </div>
-            ))}
-          </div>}
-          <div style={{display:'flex',gap:10,marginTop:6,padding:'6px 10px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,fontSize:10,...mono,color:'var(--muted)'}}>
-            <span>💤 {corosData.sleep.duration}</span>
-            <span style={{color:'var(--blue)'}}>Deep {corosData.sleep.deep}</span>
-            <span style={{color:'var(--accent)'}}>REM {corosData.sleep.rem}</span>
-            {corosData.weight&&<span style={{marginLeft:'auto',color:'var(--text)',fontWeight:600}}>{corosData.weight}kg</span>}
-          </div>
-        </>:<div style={{...card,padding:10}}>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:8}}>
-            {[{k:'recovery',l:'Récup %'},{k:'restingHR',l:'FC Repos'},{k:'hrv',l:'HRV (ms)'},{k:'weight',l:'Poids (kg)'}].map(f=>(
-              <div key={f.k}>
-                <div style={{fontSize:9,...mono,color:'var(--muted)',marginBottom:2}}>{f.l}</div>
-                <input type="number" inputMode="decimal" value={corosEdit[f.k]||''} onChange={e=>setCorosEdit(x=>({...x,[f.k]:e.target.value}))} style={{width:'100%',padding:'6px 8px',...mono}}/>
-              </div>
-            ))}
-            {[{k:'score',l:'Sommeil /100'},{k:'duration',l:'Durée (ex: 7h30)'},{k:'deep',l:'Deep (ex: 1h20)'},{k:'rem',l:'REM (ex: 1h45)'}].map(f=>(
-              <div key={f.k}>
-                <div style={{fontSize:9,...mono,color:'var(--muted)',marginBottom:2}}>{f.l}</div>
-                <input type={f.k==='score'?'number':'text'} inputMode={f.k==='score'?'decimal':'text'} value={corosEdit.sleep?.[f.k]||''} onChange={e=>setCorosEdit(x=>({...x,sleep:{...x.sleep,[f.k]:e.target.value}}))} style={{width:'100%',padding:'6px 8px',...mono}}/>
-              </div>
-            ))}
-          </div>
-          <button onClick={()=>{const nc={...corosData,...corosEdit,recovery:+corosEdit.recovery||corosData.recovery,restingHR:+corosEdit.restingHR||corosData.restingHR,hrv:+corosEdit.hrv||corosData.hrv,weight:+corosEdit.weight||corosData.weight,sleep:{...corosData.sleep,...corosEdit.sleep,score:+corosEdit.sleep?.score||corosData.sleep.score},lastSync:today()};setCorosData(nc);localSet('coros',nc);queueSync('coros',nc);setEditCoros(false);flash('✓ COROS mis à jour');}} style={{...btnG,width:'100%',padding:'8px',textAlign:'center'}}>Sauvegarder</button>
-        </div>}
-      </div>
+
       <div ref={chatRef} style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:8,paddingBottom:8}}>
         {aiMsgs.length===0&&<div style={{textAlign:'center',padding:'20px',color:'var(--muted)'}}>
           <div style={{fontSize:28,marginBottom:6}}>🤖</div>
-          <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>Coach IA pret</div>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>Coach IA prêt</div>
           <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:20}}>
-            {['Que manger avant ma seance ?','Analyse mes macros','Conseils recuperation ?'].map(q=>(
+            {['Que manger avant ma seance ?','Analyse mes macros aujourd\'hui','Conseils récupération ?','Objectif calorique ajusté ?'].map(q=>(
               <button key={q} onClick={()=>setAiIn(q)} style={{...btnB,borderColor:'var(--sb)',color:'var(--blue)',padding:'9px 12px',textAlign:'left',borderRadius:8,fontSize:12}}>{q} ↗</button>
             ))}
           </div>
           <div style={{borderTop:'1px dashed var(--border)',paddingTop:14}}>
-            <div style={{fontSize:10,color:'var(--muted)',marginBottom:10,...mono}}>GESTION DES DONNEES</div>
+            <div style={{fontSize:10,color:'var(--muted)',marginBottom:10,...mono}}>GESTION DES DONNÉES</div>
             <div style={{display:'flex',justifyContent:'center',gap:8}}>
               <button onClick={exportData} style={{...btnB,padding:'8px 14px',fontSize:12}}>📤 Exporter</button>
               <button onClick={()=>fileRef.current.click()} style={{...btnB,padding:'8px 14px',fontSize:12}}>📥 Importer</button>
@@ -1085,7 +874,7 @@ function App(){
             <div style={{maxWidth:'82%',padding:'9px 12px',borderRadius:10,fontSize:13,lineHeight:1.6,background:m.role==='user'?'var(--si)':'var(--surface)',color:m.role==='user'?'var(--blue)':'var(--text)',border:'1px solid '+(m.role==='user'?'var(--sb)':'var(--border)')}}>{m.content}</div>
           </div>
         ))}
-        {aiLoad&&<div style={{display:'flex'}}><div style={{padding:'8px 13px',borderRadius:10,...card,fontSize:13,color:'var(--muted)'}}>Coach reflechit...</div></div>}
+        {aiLoad&&<div style={{display:'flex'}}><div style={{padding:'8px 13px',borderRadius:10,...card,fontSize:13,color:'var(--muted)'}}>Coach réfléchit...</div></div>}
       </div>
       <div style={{display:'flex',gap:8,paddingTop:8}}>
         <input ref={aiInputRef} value={aiIn} onChange={e=>setAiIn(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&sendAI()} placeholder="Pose ta question..." inputMode="text" style={{flex:1,padding:'10px 13px',borderRadius:8}}/>
@@ -1098,13 +887,9 @@ function App(){
     <div className="hdr">
       <div style={{flex:1}}>
         <div style={{fontSize:14,fontWeight:700,letterSpacing:'-0.3px'}}>COACH <span style={{color:'var(--accent)'}}>DASHBOARD</span></div>
-        <div style={{fontSize:8,color:'var(--muted)',...mono}}>HYROX · MAASTRICHT 2026</div>
+        <div style={{fontSize:8,color:'var(--muted)',...mono}}>HYROX · MAASTRICHT 2026 · LOCAL</div>
       </div>
-      {sbUser
-        ?<span style={{fontSize:9,padding:'3px 8px',borderRadius:20,...mono,background:'var(--gi)',color:'var(--accent)',border:'1px solid var(--gb)'}}>☁️ CLOUD</span>
-        :<span style={{fontSize:9,padding:'3px 8px',borderRadius:20,...mono,background:'var(--surface2)',color:'var(--muted)',border:'1px solid var(--border)'}}>📱 LOCAL</span>
-      }
-      {badge&&<span style={{fontSize:9,color:'var(--accent)',...mono,marginLeft:6}}>{badge}</span>}
+      {badge&&<span style={{fontSize:9,color:'var(--accent)',...mono}}>{badge}</span>}
     </div>
 
     <div className="cal-hdr" onClick={()=>setCal(o=>!o)}>
@@ -1117,7 +902,7 @@ function App(){
     </div>
     <div className="cal-body" style={{maxHeight:calOpen?'320px':'0'}}>{Cal()}</div>
 
-    {exportReminder&&!sbUser&&<div style={{background:'var(--oi)',borderBottom:'1px solid var(--ob)',padding:'8px 14px',display:'flex',alignItems:'center',gap:8}}>
+    {exportReminder&&<div style={{background:'var(--oi)',borderBottom:'1px solid var(--ob)',padding:'8px 14px',display:'flex',alignItems:'center',gap:8}}>
       <span style={{fontSize:12,flex:1}}>💾 Sauvegarde recommandée — protège tes données</span>
       <button onClick={exportData} style={{...btnG,padding:'4px 10px',fontSize:11}}>📤 Exporter</button>
       <button onClick={()=>{localStorage.setItem('hyrox_exportsnooze',String(Date.now()+2*24*60*60*1000));setExportReminder(false);}} style={{...btnB,padding:'4px 8px',fontSize:11}}>+2j</button>
