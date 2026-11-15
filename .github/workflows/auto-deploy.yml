@@ -1,0 +1,27 @@
+name: Auto deploy from dev branch
+
+on:
+  push:
+    branches: [ claude/local-safari-script-tdhk6m ]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  merge-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge dev branch to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          git merge --ff-only origin/claude/local-safari-script-tdhk6m
+          git push origin main
