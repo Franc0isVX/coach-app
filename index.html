@@ -356,6 +356,7 @@ function App(){
   const saveDayTimer   = useRef(null);
   const [apiKey,setApiKey] = useState(()=>localStorage.getItem('hyrox_apikey')||'');
   const [exportReminder, setExportReminder] = useState(false);
+  const [corosData, setCorosData] = useState({});
 
   useEffect(()=>{
     if(!localStorage.getItem('hyrox_days')){localSet('days',NAS_DAYS);localSet('foods',NAS_FOODS);}
@@ -365,6 +366,18 @@ function App(){
     const snooze=parseInt(localStorage.getItem('hyrox_exportsnooze')||'0');
     const now=Date.now();
     if(now-last>7*24*60*60*1000&&now>snooze) setExportReminder(true);
+    // Fetch COROS data (public read, no auth required)
+    if(sb){
+      sb.from('coros_data').select('*').order('date',{ascending:false}).limit(30)
+        .then(({data})=>{
+          if(data?.length){
+            const m={};
+            data.forEach(r=>{m[r.date]=r;});
+            setCorosData(m);
+          }
+        });
+    }
+
     if(!sb) return;
     sb.auth.getSession().then(({data:{session}})=>{
       if(session?.user){setSbUser(session.user);sbUserRef.current=session.user;syncFromCloud();}
@@ -610,7 +623,10 @@ function App(){
         </div>}
         <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--surface2)',borderRadius:7,padding:'7px 10px'}}>
           <span style={{fontSize:16}}>🔥</span>
-          <span style={{fontSize:12,color:'var(--muted)',flex:1}}>Dépense énergétique</span>
+          <span style={{fontSize:12,color:'var(--muted)',flex:1}}>
+            Dépense énergétique
+            {corosData[sel]&&<span style={{fontSize:9,...mono,color:'var(--blue)',marginLeft:5}}>⌚{corosData[sel].exercise_min}min·{corosData[sel].calories}kcal</span>}
+          </span>
           <input type="number" inputMode="decimal" min={0} step={10}
             value={sSes?(sSes.calories>0?sSes.calories:''):(days[sel]?.cal||'')}
             placeholder="0"
@@ -1008,6 +1024,34 @@ function App(){
           <button onClick={()=>saveApiKey('')} style={{...btnB,padding:'3px 9px',fontSize:10}}>Modifier</button>
         </div>
       }
+
+      {/* Carte COROS */}
+      {(()=>{
+        const c=corosData[sel]||(Object.keys(corosData).length?corosData[Object.keys(corosData).sort().pop()]:null);
+        if(!c) return null;
+        const sh=Math.floor(c.sleep_total_min/60),sm=c.sleep_total_min%60;
+        const deepPct=Math.round(c.sleep_deep_min/c.sleep_total_min*100);
+        const remPct=Math.round(c.sleep_rem_min/c.sleep_total_min*100);
+        const sleepC=c.sleep_total_min>420?'var(--accent)':c.sleep_total_min>300?'var(--orange)':'var(--red)';
+        const stressC=c.stress_avg<25?'var(--accent)':c.stress_avg<40?'var(--orange)':'var(--red)';
+        return <div style={{...card,padding:'10px 12px',marginBottom:8,borderColor:'rgba(53,212,241,.3)'}}>
+          <div style={{fontSize:10,...mono,color:'var(--blue)',marginBottom:8,letterSpacing:'0.06em'}}>⌚ COROS · {c.date}</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
+            {[
+              {v:sh+'h'+(sm>0?sm+'m':''),l:'Sommeil',sub:'P:'+deepPct+'% R:'+remPct+'%',c:sleepC},
+              {v:c.resting_hr+' bpm',l:'FC repos',sub:c.hrv_baseline+'ms HRV',c:'var(--blue)'},
+              {v:String(c.stress_avg),l:'Stress',sub:'/ 100',c:stressC},
+              {v:c.steps>999?(c.steps/1000).toFixed(1)+'k':c.steps,l:'Pas',sub:c.exercise_min+'min sport',c:'var(--accent)'},
+            ].map((m,i)=>(
+              <div key={i} style={{textAlign:'center',background:'var(--surface2)',borderRadius:7,padding:'6px 4px'}}>
+                <div style={{fontSize:14,fontWeight:700,...mono,color:m.c}}>{m.v}</div>
+                <div style={{fontSize:9,color:'var(--muted)'}}>{m.l}</div>
+                <div style={{fontSize:8,color:'var(--muted)',marginTop:1,...mono}}>{m.sub}</div>
+              </div>
+            ))}
+          </div>
+        </div>;
+      })()}
 
       {/* Contexte du jour */}
       <div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:8,padding:'7px 11px',marginBottom:8,fontSize:11,...mono,color:'var(--blue)'}}>
