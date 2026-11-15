@@ -57,73 +57,37 @@ select option{background:var(--surface2);}
 .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;}
 
 /* ── Repas : layout une ligne par aliment ── */
-.meal-row{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-  padding:6px 8px;
-  border-bottom:1px solid var(--border);
-}
-.meal-row-top{
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-.meal-row-top select{
-  flex:1;
-  font-size:15px;
-  padding:5px 6px;
-  border-radius:6px;
-  min-width:0;
-}
-.meal-row-bottom{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-.meal-row-bottom input[type=number]{
-  width:80px;
-  font-size:15px;
-  padding:5px 8px;
-  text-align:center;
-  border-radius:6px;
-  font-family:'JetBrains Mono',monospace;
-}
-.meal-unit{
-  font-size:11px;
-  color:var(--muted);
-  font-family:'JetBrains Mono',monospace;
-  min-width:24px;
-}
-.meal-kcal{
-  font-size:12px;
-  color:var(--accent);
-  font-weight:600;
-  font-family:'JetBrains Mono',monospace;
-  margin-left:auto;
-}
-.meal-del{
-  background:none;
-  border:none;
-  cursor:pointer;
-  color:var(--muted);
-  font-size:16px;
-  padding:2px 4px;
-  flex-shrink:0;
-}
+.meal-row{display:flex;flex-direction:column;gap:4px;padding:6px 8px;border-bottom:1px solid var(--border);}
+.meal-row-top{display:flex;align-items:center;gap:6px;}
+.meal-row-top select{flex:1;font-size:15px;padding:5px 6px;border-radius:6px;min-width:0;}
+.meal-row-bottom{display:flex;align-items:center;gap:8px;}
+.meal-row-bottom input[type=number]{width:80px;font-size:15px;padding:5px 8px;text-align:center;border-radius:6px;font-family:'JetBrains Mono',monospace;}
+.meal-unit{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;min-width:24px;}
+.meal-kcal{font-size:12px;color:var(--accent);font-weight:600;font-family:'JetBrains Mono',monospace;margin-left:auto;}
+.meal-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px;flex-shrink:0;}
 
 /* Meals grid 2 colonnes */
 .mg{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 @media(max-width:400px){.mg{grid-template-columns:1fr;}}
+
+/* Apple button */
+.btn-apple{width:100%;padding:13px;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;border:none;border-radius:9px;color:#000;font-size:15px;font-weight:600;cursor:pointer;letter-spacing:-0.3px;transition:opacity .15s;}
+.btn-apple:active{opacity:.85;}
+.btn-apple svg{flex-shrink:0;}
 </style>
 </head>
 <body>
 <div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
 <script type="text/babel">
 const {useState,useEffect,useRef} = React;
+const sb = window.supabase?.createClient(
+  'https://mlqnbuvdsdbztieudbef.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1scW5idXZkc2RienRpZXVkYmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODM2ODIsImV4cCI6MjA5NjM1OTY4Mn0.afjdMlWJtSGZedAgJ5cKdJ3ehbU349W0DnxPnJocBtg'
+);
 
 const TK = 1965, RK = 1665, MP = {p:177,l:88};
 
@@ -339,6 +303,12 @@ function FoodRow({slot, row, idx, afw, sel, updRow, delRow, addCF}){
   </div>;
 }
 
+function AppleLogo(){
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.54 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
+  </svg>;
+}
+
 function App(){
   const [tab,setTab]   = useState('nutrition');
   const [sel,setSel]   = useState(today());
@@ -350,6 +320,16 @@ function App(){
   const [recs,setRecs] = useState(()=>localGet('recipes',{}));
   const [sess,setSess] = useState(()=>localGet('sessions',NAS_SESSIONS));
   const [badge,setBadge] = useState('');
+  const [syncing,setSyncing] = useState(false);
+  const [sbUser,setSbUser] = useState(null);
+  const [authEmail,setAuthEmail] = useState('');
+  const [authPwd,setAuthPwd] = useState('');
+  const [authLoading,setAuthLoading] = useState(false);
+  const [authMsg,setAuthMsg] = useState('');
+  const [showEmailForm,setShowEmailForm] = useState(false);
+  const sbUserRef = useRef(null);
+  const cloudTimer = useRef(null);
+  const pendingSync = useRef({});
   const [aiMsgs,setAiMsgs] = useState([]);
   const [aiIn,setAiIn] = useState('');
   const [aiLoad,setAiLoad] = useState(false);
@@ -376,6 +356,16 @@ function App(){
     const snooze=parseInt(localStorage.getItem('hyrox_exportsnooze')||'0');
     const now=Date.now();
     if(now-last>7*24*60*60*1000&&now>snooze) setExportReminder(true);
+    if(!sb) return;
+    sb.auth.getSession().then(({data:{session}})=>{
+      if(session?.user){setSbUser(session.user);sbUserRef.current=session.user;syncFromCloud();}
+    });
+    const {data:{subscription}}=sb.auth.onAuthStateChange((evt,session)=>{
+      const u=session?.user||null;
+      setSbUser(u);sbUserRef.current=u;
+      if(evt==='SIGNED_IN') syncFromCloud();
+    });
+    return ()=>subscription.unsubscribe();
   },[]);
 
   function flash(m){setBadge(m);setTimeout(()=>setBadge(''),3000);}
@@ -392,16 +382,16 @@ function App(){
   const gt   = ds=>totals(gm(ds),afw);
   const gb   = ds=>sess[ds]?.calories||days[ds]?.cal||0;
 
-  function saveDay(dd){setDays(dd);if(saveDayTimer.current)clearTimeout(saveDayTimer.current);saveDayTimer.current=setTimeout(()=>{localSet('days',dd);},800);}
+  function saveDay(dd){setDays(dd);if(saveDayTimer.current)clearTimeout(saveDayTimer.current);saveDayTimer.current=setTimeout(()=>{localSet('days',dd);queueSync('days',dd);},800);}
   function addRow(ds,mid){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].meals[mid]=[...(dd[ds].meals[mid]||[]),{food:'',qty:0}];saveDay(dd,ds);}
   function updRow(ds,mid,idx,fld,val){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};const row=dd[ds].meals[mid][idx];if(!row)return;if(fld==='food'){row.food=val;row.qty=0;}else row.qty=parseFloat(val)||0;saveDay(dd,ds);}
   function delRow(ds,mid,idx){const dd=JSON.parse(JSON.stringify(days));dd[ds].meals[mid].splice(idx,1);saveDay(dd,ds);}
   function setCalB(ds,v){const dd=JSON.parse(JSON.stringify(days));if(!dd[ds])dd[ds]={meals:{matin:[],midi:[],collation:[],soir:[]}};dd[ds].cal=v;saveDay(dd,ds);}
-  function saveCf(){if(!nf.name||!nf.kcal)return;const c={...cf,[nf.name]:{kcal:+nf.kcal,p:+nf.p||0,l:+nf.l||0,g:+nf.g||0,unit:nf.unit}};setCf(c);localSet('foods',c);flash('✓ '+nf.name);setNf({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});setAF(false);}
+  function saveCf(){if(!nf.name||!nf.kcal)return;const c={...cf,[nf.name]:{kcal:+nf.kcal,p:+nf.p||0,l:+nf.l||0,g:+nf.g||0,unit:nf.unit}};setCf(c);localSet('foods',c);queueSync('foods',c);flash('✓ '+nf.name);setNf({name:'',kcal:'',p:'',l:'',g:'',unit:'g'});setAF(false);}
   function rTotals(ings){let k=0,p=0,l=0,g=0;ings.forEach(r=>{const f=af[r.food];if(f&&r.qty>0){const gr=gew(f,r.qty);const x=gr/100;k+=f.kcal*x;p+=f.p*x;l+=f.l*x;g+=f.g*x;}});return{kcal:Math.round(k),p:Math.round(p),l:Math.round(l),g:Math.round(g)};}
-  function saveRec(){if(!nr.name)return;const ings=nr.ings.filter(i=>i.food&&i.qty>0);if(!ings.length)return;const t=rTotals(ings);const r={...recs,[nr.name]:{portions:Math.max(1,nr.portions||1),desc:nr.desc,ingredients:ings,totals:t}};setRecs(r);localSet('recipes',r);flash('✓ '+nr.name);setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});setRtab('list');}
+  function saveRec(){if(!nr.name)return;const ings=nr.ings.filter(i=>i.food&&i.qty>0);if(!ings.length)return;const t=rTotals(ings);const r={...recs,[nr.name]:{portions:Math.max(1,nr.portions||1),desc:nr.desc,ingredients:ings,totals:t}};setRecs(r);localSet('recipes',r);queueSync('recipes',r);flash('✓ '+nr.name);setNr({name:'',portions:1,desc:'',ings:[{food:'',qty:0}]});setRtab('list');}
   function delRec(n){const r={...recs};delete r[n];setRecs(r);localSet('recipes',r);}
-  function saveSess(s){setSess(s);localSet('sessions',s);flash('✓ Séances');}
+  function saveSess(s){setSess(s);localSet('sessions',s);queueSync('sessions',s);flash('✓ Séances');}
   function saveNewSess(){
     if(!ns.title||!ns.date)return;
     const sd={title:ns.title,type:ns.type,duree:+ns.duree,statut:ns.statut,calories:+ns.calories||0};
@@ -417,7 +407,66 @@ function App(){
     setES(null);
   }
   function delSess(ds){const s={...sess};delete s[ds];saveSess(s);}
-  function addCF(name,data){const c={...cf,[name]:data};setCf(c);localSet('foods',c);}
+  function addCF(name,data){const c={...cf,[name]:data};setCf(c);localSet('foods',c);queueSync('foods',c);}
+
+  async function syncFromCloud(){
+    if(!sb||!sbUserRef.current) return;
+    const uid=sbUserRef.current.id;
+    const {data,error}=await sb.from('user_data').select('*').eq('id',uid).single();
+    if(error||!data){
+      await sb.from('user_data').upsert({id:uid,days:localGet('days',{}),sessions:localGet('sessions',{}),foods:localGet('foods',{}),recipes:localGet('recipes',{}),updated_at:new Date().toISOString()});
+      flash('☁️ Données envoyées');
+      return;
+    }
+    if(data.days&&Object.keys(data.days).length>0){setDays(data.days);localSet('days',data.days);}
+    if(data.sessions&&Object.keys(data.sessions).length>0){setSess(data.sessions);localSet('sessions',data.sessions);}
+    if(data.foods&&Object.keys(data.foods).length>0){setCf(data.foods);localSet('foods',data.foods);}
+    if(data.recipes&&Object.keys(data.recipes).length>0){setRecs(data.recipes);localSet('recipes',data.recipes);}
+    flash('☁️ Sync OK');
+  }
+
+  function queueSync(key,val){
+    if(!sbUserRef.current) return;
+    pendingSync.current={...pendingSync.current,[key]:val};
+    clearTimeout(cloudTimer.current);
+    cloudTimer.current=setTimeout(async()=>{
+      if(!sbUserRef.current) return;
+      const uid=sbUserRef.current.id;
+      const payload={...pendingSync.current};
+      pendingSync.current={};
+      setSyncing(true);
+      try{
+        await Promise.race([
+          sb.from('user_data').upsert({id:uid,...payload,updated_at:new Date().toISOString()}),
+          new Promise((_,r)=>setTimeout(()=>r('timeout'),8000))
+        ]);
+      }catch{}
+      finally{setSyncing(false);}
+    },2000);
+  }
+
+  async function signInWithApple(){
+    if(!sb){setAuthMsg('⚠ Supabase non disponible');return;}
+    setAuthLoading(true);setAuthMsg('');
+    const {error}=await sb.auth.signInWithOAuth({
+      provider:'apple',
+      options:{redirectTo:window.location.origin+window.location.pathname}
+    });
+    if(error) setAuthMsg('⚠ '+error.message);
+    setAuthLoading(false);
+  }
+
+  async function signInWithEmail(){
+    if(!sb||!authEmail.trim()||!authPwd) return;
+    setAuthLoading(true);setAuthMsg('');
+    const {error}=await sb.auth.signInWithPassword({email:authEmail.trim(),password:authPwd});
+    if(error){
+      const {error:e2}=await sb.auth.signUp({email:authEmail.trim(),password:authPwd});
+      if(e2) setAuthMsg('⚠ '+error.message);
+      else setAuthMsg('✓ Compte créé et connecté !');
+    }
+    setAuthLoading(false);
+  }
 
   async function sendAI(){
     if(!aiIn.trim())return;
@@ -428,7 +477,7 @@ function App(){
     setTimeout(()=>{if(chatRef.current)chatRef.current.scrollTop=chatRef.current.scrollHeight;},50);
     try{
       const t=gt(sel),tgt=gtgt(sel),s=sess[sel];
-      const sys='Tu es Coach HYROX. Jour:'+sel+' | Obj:'+tgt+'kcal | Conso:'+t.kcal+'kcal | P:'+t.p+'g L:'+t.l+'g G:'+t.g+'g'+(s?' | Seance:'+s.title+' '+s.type+' '+s.duree+'min':' | Jour de repos')+(gb(sel)>0?' | Depense:'+gb(sel)+'kcal':'')+'. Reponds en francais, max 120 mots.';
+      const sys='Tu es Coach HYROX. Jour:'+sel+' | Obj:'+tgt+'kcal | Conso:'+t.kcal+'kcal | P:'+t.p+'g L:'+t.l+'g G:'+t.g+'g'+(s?' | Seance:'+s.title+' '+s.type+' '+s.duree+'min':' | Repos')+(gb(sel)>0?' | Depense:'+gb(sel)+'kcal':'')+'. Reponds en francais, max 120 mots.';
       const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:500,system:sys,messages:msgs})});
       const data=await res.json();
       setAiMsgs([...msgs,{role:'assistant',content:data.content?.[0]?.text||'Erreur.'}]);
@@ -436,6 +485,9 @@ function App(){
     setAiLoad(false);
     setTimeout(()=>{if(chatRef.current)chatRef.current.scrollTop=chatRef.current.scrollHeight;},100);
   }
+
+  function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();localStorage.setItem('hyrox_lastexport',String(Date.now()));localStorage.removeItem('hyrox_exportsnooze');setExportReminder(false);flash('✓ Exporté');}
+  function importData(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=evt=>{try{const d=JSON.parse(evt.target.result);if(d.days){setDays(d.days);localSet('days',d.days);}if(d.foods){setCf(d.foods);localSet('foods',d.foods);}if(d.recipes){setRecs(d.recipes);localSet('recipes',d.recipes);}if(d.sessions){setSess(d.sessions);localSet('sessions',d.sessions);}flash('✓ Import OK');}catch{alert('Erreur JSON');}};reader.readAsText(file);}
 
   const sT=gt(sel),sTgt=gtgt(sel),sSes=sess[sel],sB=gb(sel),sAdj=sTgt+sB,sRem=sAdj-sT.kcal;
   const wk=Array.from({length:7},(_,i)=>{const t=new Date(),dw=t.getDay(),mo=new Date(t);mo.setDate(t.getDate()+(dw===0?-6:1-dw));const d=new Date(mo);d.setDate(mo.getDate()+i);const ds=dstr(d);return{ds,day:['Lu','Ma','Me','Je','Ve','Sa','Di'][i],kcal:gt(ds).kcal,target:gtgt(ds),isTr:istr(ds)};});
@@ -503,7 +555,6 @@ function App(){
         </div>
       </div>
 
-      {/* Séance du jour + dépense énergétique */}
       <div style={{...card,padding:'10px 12px',marginBottom:10}}>
         {sSes&&<div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:7,padding:'7px 10px',marginBottom:8,display:'flex',gap:8,alignItems:'center'}}>
           <span style={{fontSize:16}}>🏋️</span>
@@ -532,7 +583,6 @@ function App(){
         </div>
       </div>
 
-      {/* Repas — 2 colonnes */}
       <div className="mg">
         {MEALS.map(slot=>{
           const rows=gm(sel)[slot.id]||[];
@@ -552,7 +602,6 @@ function App(){
         })}
       </div>
 
-      {/* Aliment personnalisé */}
       <div style={{marginTop:10}}>
         {!addFood
           ?<button onClick={()=>setAF(true)} style={{...btnB,width:'100%',padding:'10px',textAlign:'center',fontSize:12}}>+ Aliment personnalise</button>
@@ -725,7 +774,7 @@ function App(){
           </div>;
         })}
         {Object.keys(sess).length===0&&<div style={{textAlign:'center',padding:'40px',color:'var(--muted)'}}>
-          <div style={{fontSize:32,marginBottom:8}}>🏃</div><div style={{fontSize:13}}>Aucune seance — appuyez sur + Ajouter</div>
+          <div style={{fontSize:32,marginBottom:8}}>🏃</div><div style={{fontSize:13}}>Aucune séance — appuyez sur + Ajouter</div>
         </div>}
       </div>
     </div>;
@@ -827,18 +876,58 @@ function App(){
     </div>;
   }
 
-  function exportData(){const blob=new Blob([JSON.stringify({days,foods:cf,recipes:recs,sessions:sess},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hyrox_backup_'+today()+'.json';a.click();localStorage.setItem('hyrox_lastexport',String(Date.now()));localStorage.removeItem('hyrox_exportsnooze');setExportReminder(false);flash('✓ Exporté');}
-  function importData(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=evt=>{try{const d=JSON.parse(evt.target.result);if(d.days){setDays(d.days);localSet('days',d.days);}if(d.foods){setCf(d.foods);localSet('foods',d.foods);}if(d.recipes){setRecs(d.recipes);localSet('recipes',d.recipes);}if(d.sessions){setSess(d.sessions);localSet('sessions',d.sessions);}flash('✓ Import OK');}catch{alert('Erreur JSON');}};reader.readAsText(file);}
-
   function Coach(){
     function saveApiKey(k){setApiKey(k);localStorage.setItem('hyrox_apikey',k);}
     return <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 200px)'}}>
+
+      {/* Connexion / Compte */}
+      <div style={{...card,padding:12,marginBottom:8}}>
+        {!sbUser
+          ?<div>
+            <div style={{fontSize:10,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:10,letterSpacing:'0.06em'}}>Connexion · Sauvegarde en ligne</div>
+            {/* Sign in with Apple */}
+            <button className="btn-apple" onClick={signInWithApple} disabled={authLoading}>
+              <AppleLogo/>
+              <span>{authLoading?'Connexion...':'Se connecter avec Apple'}</span>
+            </button>
+            {/* Séparateur */}
+            <div style={{display:'flex',alignItems:'center',gap:8,margin:'10px 0'}}>
+              <div style={{flex:1,height:'1px',background:'var(--border)'}}/>
+              <span style={{fontSize:10,color:'var(--muted)',...mono}}>ou par email</span>
+              <div style={{flex:1,height:'1px',background:'var(--border)'}}/>
+            </div>
+            {!showEmailForm
+              ?<button onClick={()=>setShowEmailForm(true)} style={{...btnB,width:'100%',padding:'9px',textAlign:'center',fontSize:12}}>
+                Continuer avec Email
+              </button>
+              :<div style={{display:'flex',flexDirection:'column',gap:6}}>
+                <input type="email" inputMode="email" placeholder="email@exemple.com" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{padding:'8px 10px',fontSize:14,borderRadius:6}}/>
+                <input type="password" placeholder="Mot de passe (min. 6 car.)" value={authPwd} onChange={e=>setAuthPwd(e.target.value)} onKeyDown={e=>e.key==='Enter'&&signInWithEmail()} style={{padding:'8px 10px',fontSize:14,borderRadius:6}}/>
+                <div style={{display:'flex',gap:6}}>
+                  <button onClick={signInWithEmail} disabled={authLoading||!authEmail.trim()||!authPwd} style={{...btnG,flex:1,padding:'8px',textAlign:'center',opacity:authLoading||!authEmail.trim()||!authPwd?0.5:1}}>
+                    {authLoading?'...':'Connexion / Inscription'}
+                  </button>
+                  <button onClick={()=>{setShowEmailForm(false);setAuthMsg('');}} style={{...btnB,padding:'8px 12px'}}>✕</button>
+                </div>
+              </div>
+            }
+            {authMsg&&<div style={{fontSize:10,...mono,color:authMsg.startsWith('⚠')?'var(--orange)':'var(--accent)',marginTop:6}}>{authMsg}</div>}
+          </div>
+          :<div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,fontWeight:600,color:'var(--accent)'}}>☁️ Connecté{syncing?' · sync...':''}</div>
+              <div style={{fontSize:10,...mono,color:'var(--muted)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sbUser.email||sbUser.id?.slice(0,16)+'...'}</div>
+            </div>
+            <button onClick={()=>{sb.auth.signOut();setShowEmailForm(false);}} style={{...btnB,padding:'5px 10px',fontSize:11}}>Déconnexion</button>
+          </div>
+        }
+      </div>
+
+      {/* Clé API */}
       {!apiKey
         ?<div style={{background:'var(--oi)',border:'1px solid var(--ob)',borderRadius:8,padding:'8px 11px',marginBottom:8}}>
-          <div style={{fontSize:10,...mono,color:'var(--orange)',marginBottom:5}}>⚠ Clé API Anthropic requise</div>
-          <div style={{display:'flex',gap:6}}>
-            <input type="password" placeholder="sk-ant-api03-..." value={apiKey} onChange={e=>saveApiKey(e.target.value)} style={{flex:1,padding:'6px 9px',fontSize:13,borderRadius:6}}/>
-          </div>
+          <div style={{fontSize:10,...mono,color:'var(--orange)',marginBottom:5}}>⚠ Clé API Anthropic requise pour le Coach IA</div>
+          <input type="password" placeholder="sk-ant-api03-..." value={apiKey} onChange={e=>saveApiKey(e.target.value)} style={{width:'100%',padding:'6px 9px',fontSize:13,borderRadius:6}}/>
           <div style={{fontSize:9,color:'var(--muted)',marginTop:4,...mono}}>Stockée localement · console.anthropic.com</div>
         </div>
         :<div style={{display:'flex',alignItems:'center',gap:8,padding:'5px 10px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,marginBottom:8}}>
@@ -847,16 +936,18 @@ function App(){
         </div>
       }
 
+      {/* Contexte du jour */}
       <div style={{background:'var(--si)',border:'1px solid var(--sb)',borderRadius:8,padding:'7px 11px',marginBottom:8,fontSize:11,...mono,color:'var(--blue)'}}>
-        {selLabel} · {sSes?'Séance: '+sSes.title:'Repos'} · {sT.kcal}/{sTgt}kcal{sB>0?' · 🔥'+sB+'kcal dépensées':''} · P:{sT.p}g L:{sT.l}g G:{sT.g}g
+        {selLabel} · {sSes?'Séance: '+sSes.title:'Repos'} · {sT.kcal}/{sTgt}kcal{sB>0?' · 🔥'+sB+'kcal':''} · P:{sT.p}g L:{sT.l}g G:{sT.g}g
       </div>
 
+      {/* Chat */}
       <div ref={chatRef} style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:8,paddingBottom:8}}>
         {aiMsgs.length===0&&<div style={{textAlign:'center',padding:'20px',color:'var(--muted)'}}>
           <div style={{fontSize:28,marginBottom:6}}>🤖</div>
           <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>Coach IA prêt</div>
           <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:20}}>
-            {['Que manger avant ma seance ?','Analyse mes macros aujourd\'hui','Conseils récupération ?','Objectif calorique ajusté ?'].map(q=>(
+            {['Que manger avant ma séance ?','Analyse mes macros aujourd\'hui','Conseils récupération ?','Objectif calorique ajusté ?'].map(q=>(
               <button key={q} onClick={()=>setAiIn(q)} style={{...btnB,borderColor:'var(--sb)',color:'var(--blue)',padding:'9px 12px',textAlign:'left',borderRadius:8,fontSize:12}}>{q} ↗</button>
             ))}
           </div>
@@ -887,9 +978,13 @@ function App(){
     <div className="hdr">
       <div style={{flex:1}}>
         <div style={{fontSize:14,fontWeight:700,letterSpacing:'-0.3px'}}>COACH <span style={{color:'var(--accent)'}}>DASHBOARD</span></div>
-        <div style={{fontSize:8,color:'var(--muted)',...mono}}>HYROX · MAASTRICHT 2026 · LOCAL</div>
+        <div style={{fontSize:8,color:'var(--muted)',...mono}}>HYROX · MAASTRICHT 2026</div>
       </div>
-      {badge&&<span style={{fontSize:9,color:'var(--accent)',...mono}}>{badge}</span>}
+      {sbUser
+        ?<span style={{fontSize:9,padding:'3px 8px',borderRadius:20,...mono,background:'var(--gi)',color:'var(--accent)',border:'1px solid var(--gb)'}}>{syncing?'⟳ SYNC':'☁️ CLOUD'}</span>
+        :<span style={{fontSize:9,padding:'3px 8px',borderRadius:20,...mono,background:'var(--surface2)',color:'var(--muted)',border:'1px solid var(--border)'}}>📱 LOCAL</span>
+      }
+      {badge&&<span style={{fontSize:9,color:'var(--accent)',...mono,marginLeft:4}}>{badge}</span>}
     </div>
 
     <div className="cal-hdr" onClick={()=>setCal(o=>!o)}>
@@ -902,7 +997,7 @@ function App(){
     </div>
     <div className="cal-body" style={{maxHeight:calOpen?'320px':'0'}}>{Cal()}</div>
 
-    {exportReminder&&<div style={{background:'var(--oi)',borderBottom:'1px solid var(--ob)',padding:'8px 14px',display:'flex',alignItems:'center',gap:8}}>
+    {exportReminder&&!sbUser&&<div style={{background:'var(--oi)',borderBottom:'1px solid var(--ob)',padding:'8px 14px',display:'flex',alignItems:'center',gap:8}}>
       <span style={{fontSize:12,flex:1}}>💾 Sauvegarde recommandée — protège tes données</span>
       <button onClick={exportData} style={{...btnG,padding:'4px 10px',fontSize:11}}>📤 Exporter</button>
       <button onClick={()=>{localStorage.setItem('hyrox_exportsnooze',String(Date.now()+2*24*60*60*1000));setExportReminder(false);}} style={{...btnB,padding:'4px 8px',fontSize:11}}>+2j</button>
