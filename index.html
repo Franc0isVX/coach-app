@@ -327,6 +327,9 @@ function App(){
   const [authLoading,setAuthLoading] = useState(false);
   const [authMsg,setAuthMsg] = useState('');
   const [showEmailForm,setShowEmailForm] = useState(false);
+  const [resetMode,setResetMode] = useState('none'); // 'none'|'request'|'set'
+  const [resetEmail,setResetEmail] = useState('');
+  const [newPwd,setNewPwd] = useState('');
   const sbUserRef = useRef(null);
   const cloudTimer = useRef(null);
   const pendingSync = useRef({});
@@ -364,6 +367,7 @@ function App(){
       const u=session?.user||null;
       setSbUser(u);sbUserRef.current=u;
       if(evt==='SIGNED_IN') syncFromCloud();
+      if(evt==='PASSWORD_RECOVERY') setResetMode('set');
     });
     return ()=>subscription.unsubscribe();
   },[]);
@@ -453,6 +457,26 @@ function App(){
       options:{redirectTo:window.location.origin+window.location.pathname}
     });
     if(error) setAuthMsg('⚠ '+error.message);
+    setAuthLoading(false);
+  }
+
+  async function requestReset(){
+    if(!sb||!resetEmail.trim()) return;
+    setAuthLoading(true);setAuthMsg('');
+    const {error}=await sb.auth.resetPasswordForEmail(resetEmail.trim(),{
+      redirectTo:window.location.origin+window.location.pathname
+    });
+    if(error) setAuthMsg('⚠ '+error.message);
+    else setAuthMsg('✓ Email envoyé — vérifie ta boite mail');
+    setAuthLoading(false);
+  }
+
+  async function setNewPassword(){
+    if(!sb||newPwd.length<6) return;
+    setAuthLoading(true);setAuthMsg('');
+    const {error}=await sb.auth.updateUser({password:newPwd});
+    if(error) setAuthMsg('⚠ '+error.message);
+    else{setAuthMsg('✓ Mot de passe mis à jour !');setResetMode('none');setNewPwd('');}
     setAuthLoading(false);
   }
 
@@ -882,7 +906,19 @@ function App(){
 
       {/* Connexion / Compte */}
       <div style={{...card,padding:12,marginBottom:8}}>
-        {!sbUser
+        {resetMode==='set'
+          ?<div>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:8,color:'var(--accent)'}}>🔑 Nouveau mot de passe</div>
+            <input type="password" placeholder="Nouveau mot de passe (min. 6 car.)" value={newPwd} onChange={e=>setNewPwd(e.target.value)} onKeyDown={e=>e.key==='Enter'&&setNewPassword()} style={{width:'100%',padding:'8px 10px',fontSize:14,borderRadius:6,marginBottom:6}}/>
+            <div style={{display:'flex',gap:6}}>
+              <button onClick={setNewPassword} disabled={authLoading||newPwd.length<6} style={{...btnG,flex:1,padding:'8px',textAlign:'center',opacity:newPwd.length<6?0.5:1}}>
+                {authLoading?'...':'Enregistrer'}
+              </button>
+              <button onClick={()=>{setResetMode('none');setNewPwd('');setAuthMsg('');}} style={{...btnB,padding:'8px 12px'}}>Annuler</button>
+            </div>
+            {authMsg&&<div style={{fontSize:10,...mono,color:authMsg.startsWith('⚠')?'var(--orange)':'var(--accent)',marginTop:6}}>{authMsg}</div>}
+          </div>
+          :!sbUser
           ?<div>
             <div style={{fontSize:10,...mono,color:'var(--muted)',textTransform:'uppercase',marginBottom:10,letterSpacing:'0.06em'}}>Connexion · Sauvegarde en ligne</div>
             {/* Sign in with Apple */}
@@ -896,7 +932,19 @@ function App(){
               <span style={{fontSize:10,color:'var(--muted)',...mono}}>ou par email</span>
               <div style={{flex:1,height:'1px',background:'var(--border)'}}/>
             </div>
-            {!showEmailForm
+            {resetMode==='request'
+              ?<div style={{display:'flex',flexDirection:'column',gap:6}}>
+                <div style={{fontSize:11,color:'var(--muted)',marginBottom:2}}>Entre ton email pour recevoir un lien de réinitialisation :</div>
+                <input type="email" inputMode="email" placeholder="email@exemple.com" value={resetEmail} onChange={e=>setResetEmail(e.target.value)} onKeyDown={e=>e.key==='Enter'&&requestReset()} style={{padding:'8px 10px',fontSize:14,borderRadius:6}}/>
+                <div style={{display:'flex',gap:6}}>
+                  <button onClick={requestReset} disabled={authLoading||!resetEmail.trim()} style={{...btnG,flex:1,padding:'8px',textAlign:'center',opacity:authLoading||!resetEmail.trim()?0.5:1}}>
+                    {authLoading?'...':'Envoyer le lien'}
+                  </button>
+                  <button onClick={()=>{setResetMode('none');setResetEmail('');setAuthMsg('');}} style={{...btnB,padding:'8px 12px'}}>✕</button>
+                </div>
+                {authMsg&&<div style={{fontSize:10,...mono,color:authMsg.startsWith('⚠')?'var(--orange)':'var(--accent)',marginTop:2}}>{authMsg}</div>}
+              </div>
+              :!showEmailForm
               ?<button onClick={()=>setShowEmailForm(true)} style={{...btnB,width:'100%',padding:'9px',textAlign:'center',fontSize:12}}>
                 Continuer avec Email
               </button>
@@ -909,9 +957,12 @@ function App(){
                   </button>
                   <button onClick={()=>{setShowEmailForm(false);setAuthMsg('');}} style={{...btnB,padding:'8px 12px'}}>✕</button>
                 </div>
+                <button onClick={()=>{setResetMode('request');setResetEmail(authEmail);setAuthMsg('');setShowEmailForm(false);}} style={{background:'none',border:'none',color:'var(--muted)',fontSize:11,cursor:'pointer',textAlign:'left',padding:'2px 0'}}>
+                  Mot de passe oublié ?
+                </button>
+                {authMsg&&<div style={{fontSize:10,...mono,color:authMsg.startsWith('⚠')?'var(--orange)':'var(--accent)',marginTop:2}}>{authMsg}</div>}
               </div>
             }
-            {authMsg&&<div style={{fontSize:10,...mono,color:authMsg.startsWith('⚠')?'var(--orange)':'var(--accent)',marginTop:6}}>{authMsg}</div>}
           </div>
           :<div style={{display:'flex',alignItems:'center',gap:10}}>
             <div style={{flex:1}}>
