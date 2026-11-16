@@ -421,6 +421,9 @@ function App(){
     if(ns.type==='Force')sd.tableau=ns.tableau;
     saveSess({...sess,[ns.date]:sd});
     if(+ns.calories>0)setCalB(ns.date,+ns.calories);
+    if(sb&&sbUserRef.current){
+      sb.from('sessions').upsert({id:'manuel-'+ns.date+'-'+Date.now(),date:ns.date,title:ns.title,type:ns.type,duree_min:+ns.duree,calories:+ns.calories||0,source:'Manuel'});
+    }
     setNs({date:'',title:'',type:'Cardio',duree:60,statut:'À faire',calories:0,tableau:emptyTab()});
     setAS(false);
   }
@@ -435,16 +438,30 @@ function App(){
   async function syncFromCloud(){
     if(!sb||!sbUserRef.current) return;
     const uid=sbUserRef.current.id;
-    const {data,error}=await sb.from('user_data').select('*').eq('id',uid).single();
+    const [{data,error},{data:sRows}]=await Promise.all([
+      sb.from('user_data').select('*').eq('id',uid).single(),
+      sb.from('sessions').select('*').order('date',{ascending:false}).limit(300)
+    ]);
+    // Convert sessions table rows to date-keyed dict (COROS as base)
+    const corosSess={};
+    if(sRows?.length){
+      sRows.forEach(r=>{
+        if(!corosSess[r.date])
+          corosSess[r.date]={title:r.title,type:r.type,duree:r.duree_min,calories:r.calories||0,avg_hr:r.avg_hr,distance_m:r.distance_m,source:r.source,statut:'Fait'};
+      });
+    }
     if(error||!data){
       await sb.from('user_data').upsert({id:uid,days:localGet('days',{}),sessions:localGet('sessions',{}),foods:localGet('foods',{}),recipes:localGet('recipes',{}),updated_at:new Date().toISOString()});
+      if(Object.keys(corosSess).length>0){setSess(corosSess);localSet('sessions',corosSess);}
       flash('☁️ Données envoyées');
       return;
     }
     if(data.days&&Object.keys(data.days).length>0){setDays(data.days);localSet('days',data.days);}
-    if(data.sessions&&Object.keys(data.sessions).length>0){setSess(data.sessions);localSet('sessions',data.sessions);}
     if(data.foods&&Object.keys(data.foods).length>0){setCf(data.foods);localSet('foods',data.foods);}
     if(data.recipes&&Object.keys(data.recipes).length>0){setRecs(data.recipes);localSet('recipes',data.recipes);}
+    // Merge: COROS sessions as base, user edits (user_data.sessions) on top
+    const merged={...corosSess,...(data.sessions||{})};
+    if(Object.keys(merged).length>0){setSess(merged);localSet('sessions',merged);}
     flash('☁️ Sync OK');
   }
 
@@ -815,8 +832,8 @@ function App(){
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:600,marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.title}</div>
                     <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-                      {[s.type,s.duree+'min',s.calories>0?'🔥'+s.calories+'kcal':null].filter(Boolean).map((t,i)=>(
-                        <span key={i} style={{fontSize:10,padding:'1px 6px',borderRadius:4,background:'var(--surface2)',color:t.includes('kcal')?'var(--orange)':'var(--muted)',border:'1px solid var(--border)',...mono}}>{t}</span>
+                      {[s.type,s.duree+'min',s.calories>0?'🔥'+s.calories+'kcal':null,s.distance_m>0?'📍'+(s.distance_m>=1000?(s.distance_m/1000).toFixed(1)+'km':s.distance_m+'m'):null,s.avg_hr?'❤️'+s.avg_hr+'bpm':null].filter(Boolean).map((t,i)=>(
+                        <span key={i} style={{fontSize:10,padding:'1px 6px',borderRadius:4,background:'var(--surface2)',color:t.includes('kcal')?'var(--orange)':t.includes('bpm')?'var(--red)':t.includes('km')||t.includes('📍')?'var(--blue)':'var(--muted)',border:'1px solid var(--border)',...mono}}>{t}</span>
                       ))}
                     </div>
                   </div>
